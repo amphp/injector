@@ -680,7 +680,7 @@ final class Injector
             return $object;
         }
 
-        $interfaces = \array_flip(\array_map(fn($name) => $this->normalizeName($name), $interfaces));
+        $interfaces = \array_flip(\array_map(fn ($name) => $this->normalizeName($name), $interfaces));
         $prepares = \array_intersect_key($this->prepares, $interfaces);
         foreach ($prepares as $interfaceName => $prepare) {
             $executable = $this->buildExecutable($prepare);

@@ -108,8 +108,10 @@ class InjectorTest extends TestCase
     public function testMakeInstanceCustomDefinitionOverridesExistingDefinitions(): void
     {
         $injector = new Injector;
-        $injector->define(InjectorTestChildClass::class,
-            [':arg1' => 'First argument', ':arg2' => 'Second argument']);
+        $injector->define(
+            InjectorTestChildClass::class,
+            [':arg1' => 'First argument', ':arg2' => 'Second argument']
+        );
         $injected = $injector->make(InjectorTestChildClass::class, [':arg1' => 'Override']);
         self::assertEquals('Override', $injected->arg1);
         self::assertEquals('Second argument', $injected->arg2);
@@ -191,8 +193,7 @@ class InjectorTest extends TestCase
     }
 
     public function testMakeInstanceThrowsExceptionOnUntypehintedParameterWithoutDefinitionOrDefaultThroughAliasedTypehint(
-    ): void
-    {
+    ): void {
         $injector = new Injector;
         $injector->alias(TestNoExplicitDefine::class, InjectorTestCtorParamWithNoTypehintOrDefault::class);
 
@@ -1138,7 +1139,7 @@ class InjectorTest extends TestCase
     public function testDelegationDoesntMakeObjectMakesString(): void
     {
         $injector = new Injector;
-        $injector->delegate(SomeClassName::class, fn() => 'ThisIsNotAClass');
+        $injector->delegate(SomeClassName::class, fn () => 'ThisIsNotAClass');
 
         $this->expectException(InjectionException::class);
         $this->expectExceptionMessage('Making amp\injector\someclassname did not result in an object, instead result is of type \'string\'');
