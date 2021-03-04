@@ -1,11 +1,13 @@
 name: Continuous Integration
 
 on:
-  - push
-  - pull_request
+  push: null
+  pull_request:
+    branches:
+      - master
 
 jobs:
-  tests:
+  integration:
     strategy:
       matrix:
         include:
@@ -26,18 +28,18 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
 
     steps:
-      - name: Set git to use LF
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+
+      - name: Use LF line ends
         run: |
           git config --global core.autocrlf false
           git config --global core.eol lf
 
       - name: Checkout code
         uses: actions/checkout@v2
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
 
       - name: Get Composer cache directory
         id: composer-cache
@@ -51,8 +53,6 @@ jobs:
           restore-keys: |
             composer-${{ runner.os }}-${{ matrix.php-version }}-${{ hashFiles('**/composer.*') }}-
             composer-${{ runner.os }}-${{ matrix.php-version }}-
-            composer-${{ runner.os }}-
-            composer-
 
       - name: Install dependencies
         uses: nick-invision/retry@v2
@@ -65,8 +65,8 @@ jobs:
             composer update --optimize-autoloader --no-interaction --no-progress ${{ matrix.composer-flags }}
             composer info -D
 
-      - name: Run tests
-        run: vendor/bin/phpunit ${{ matrix.phpunit-flags }}
+      - name: Run unit tests
+        run: vendor/bin/phpunit --verbose
 
       - name: Run style fixer
         env:
