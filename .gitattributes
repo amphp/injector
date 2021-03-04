@@ -1,2 +1,4 @@
+/.github           export-ignore
+/benchmarks        export-ignore
 /examples          export-ignore
 /test              export-ignore

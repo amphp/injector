@@ -1,14 +1,37 @@
 <?php
 
-namespace Auryn\Test;
+namespace Amp\Injector;
+
+interface SharedAliasedInterface
+{
+    public function foo();
+}
+
+interface DepInterface
+{
+}
+
+interface SomeInterface
+{
+}
+
+interface TestNoExplicitDefine
+{
+}
+
+interface DelegatableInterface
+{
+    public function foo();
+}
 
 class InaccessibleExecutableClassMethod
 {
-    private function doSomethingPrivate()
+    protected function doSomethingProtected()
     {
         return 42;
     }
-    protected function doSomethingProtected()
+
+    private function doSomethingPrivate()
     {
         return 42;
     }
@@ -16,11 +39,12 @@ class InaccessibleExecutableClassMethod
 
 class InaccessibleStaticExecutableClassMethod
 {
-    private static function doSomethingPrivate()
+    protected static function doSomethingProtected()
     {
         return 42;
     }
-    protected static function doSomethingProtected()
+
+    private static function doSomethingPrivate()
     {
         return 42;
     }
@@ -76,11 +100,6 @@ class DependsOnCyclic
     }
 }
 
-interface SharedAliasedInterface
-{
-    public function foo();
-}
-
 class SharedClass implements SharedAliasedInterface
 {
     public function foo()
@@ -95,10 +114,10 @@ class NotSharedClass implements SharedAliasedInterface
     }
 }
 
-
 class DependencyWithDefinedParam
 {
     public $foo;
+
     public function __construct($foo)
     {
         $this->foo = $foo;
@@ -108,12 +127,12 @@ class DependencyWithDefinedParam
 class RequiresDependencyWithDefinedParam
 {
     public $obj;
+
     public function __construct(DependencyWithDefinedParam $obj)
     {
         $this->obj = $obj;
     }
 }
-
 
 class ClassWithAliasAsParameter
 {
@@ -172,18 +191,10 @@ class TestClassWithNoCtorTypehints
     }
 }
 
-class TestMultiDepsNeeded
-{
-    public function __construct(TestDependency $val1, TestDependency2 $val2)
-    {
-        $this->testDep = $val1;
-        $this->testDep = $val2;
-    }
-}
-
-
 class TestMultiDepsWithCtor
 {
+    public mixed $testDep;
+
     public function __construct(TestDependency $val1, TestNeedsDep $val2)
     {
         $this->testDep = $val1;
@@ -194,7 +205,8 @@ class TestMultiDepsWithCtor
 class NoTypehintNullDefaultConstructorClass
 {
     public $testParam = 1;
-    public function __construct(TestDependency $val1, $arg=42)
+
+    public function __construct(TestDependency $val1, $arg = 42)
     {
         $this->testParam = $arg;
     }
@@ -203,21 +215,17 @@ class NoTypehintNullDefaultConstructorClass
 class NoTypehintNoDefaultConstructorClass
 {
     public $testParam = 1;
+
     public function __construct(TestDependency $val1, $arg = null)
     {
         $this->testParam = $arg;
     }
 }
 
-interface DepInterface
-{
-}
-interface SomeInterface
-{
-}
 class SomeImplementation implements SomeInterface
 {
 }
+
 class PreparesImplementationTest implements SomeInterface
 {
     public $testProp = 0;
@@ -231,6 +239,7 @@ class DepImplementation implements DepInterface
 class RequiresInterface
 {
     public $dep;
+
     public function __construct(DepInterface $dep)
     {
         $this->testDep = $dep;
@@ -240,20 +249,24 @@ class RequiresInterface
 class ClassInnerA
 {
     public $dep;
+
     public function __construct(ClassInnerB $dep)
     {
         $this->dep = $dep;
     }
 }
+
 class ClassInnerB
 {
     public function __construct()
     {
     }
 }
+
 class ClassOuter
 {
     public $dep;
+
     public function __construct(ClassInnerA $dep)
     {
         $this->dep = $dep;
@@ -268,13 +281,10 @@ class ProvTestNoDefinitionNullDefaultClass
     }
 }
 
-interface TestNoExplicitDefine
-{
-}
-
 class InjectorTestCtorParamWithNoTypehintOrDefault implements TestNoExplicitDefine
 {
     public $val = 42;
+
     public function __construct($val)
     {
         $this->val = $val;
@@ -284,6 +294,7 @@ class InjectorTestCtorParamWithNoTypehintOrDefault implements TestNoExplicitDefi
 class InjectorTestCtorParamWithNoTypehintOrDefaultDependent
 {
     private $param;
+
     public function __construct(TestNoExplicitDefine $param)
     {
         $this->param = $param;
@@ -339,6 +350,7 @@ class CallableMock
 class ProviderTestCtorParamWithNoTypehintOrDefault implements TestNoExplicitDefine
 {
     public $val = 42;
+
     public function __construct($val)
     {
         $this->val = $val;
@@ -348,6 +360,7 @@ class ProviderTestCtorParamWithNoTypehintOrDefault implements TestNoExplicitDefi
 class ProviderTestCtorParamWithNoTypehintOrDefaultDependent
 {
     private $param;
+
     public function __construct(TestNoExplicitDefine $param)
     {
         $this->param = $param;
@@ -360,6 +373,7 @@ class StringStdClassDelegateMock
     {
         return $this->make();
     }
+
     private function make()
     {
         $obj = new \StdClass;
@@ -385,6 +399,7 @@ class ExecuteClassDeps
     public function __construct(TestDependency $testDep)
     {
     }
+
     public function execute()
     {
         return 42;
@@ -396,6 +411,7 @@ class ExecuteClassDepsWithMethodDeps
     public function __construct(TestDependency $testDep)
     {
     }
+
     public function execute(TestDependency $dep, $arg = null)
     {
         return isset($arg) ? $arg : 42;
@@ -418,12 +434,9 @@ class ExecuteClassRelativeStaticMethod extends ExecuteClassStaticMethod
     }
 }
 
-class ExecuteClassInvokable
+function hasArrayDependency(array $parameter)
 {
-    public function __invoke()
-    {
-        return 42;
-    }
+    return 42;
 }
 
 function testExecuteFunction()
@@ -436,6 +449,14 @@ function testExecuteFunctionWithArg(ConcreteClass1 $foo)
     return 42;
 }
 
+class ExecuteClassInvokable
+{
+    public function __invoke()
+    {
+        return 42;
+    }
+}
+
 class MadeByDelegate
 {
 }
@@ -446,11 +467,6 @@ class CallableDelegateClassTest
     {
         return new MadeByDelegate;
     }
-}
-
-interface DelegatableInterface
-{
-    public function foo();
 }
 
 class ImplementsInterface implements DelegatableInterface
@@ -476,6 +492,7 @@ class RequiresDelegatedInterface
     {
         $this->interface = $interface;
     }
+
     public function foo()
     {
         $this->interface->foo();
@@ -492,17 +509,18 @@ class TestMissingDependency
 class NonConcreteDependencyWithDefaultValue
 {
     public $interface;
+
     public function __construct(DelegatableInterface $i = null)
     {
         $this->interface = $i;
     }
 }
 
-
 class ConcreteDependencyWithDefaultValue
 {
-    public $dependency;
-    public function __construct(\StdClass $instance = null)
+    public ?\stdClass $dependency;
+
+    public function __construct(\stdClass $instance = null)
     {
         $this->dependency = $instance;
     }
@@ -556,13 +574,13 @@ class ClassWithCtor
 
 class TestDependencyWithProtectedConstructor
 {
-    protected function __construct()
-    {
-    }
-
     public static function create()
     {
         return new self();
+    }
+
+    protected function __construct()
+    {
     }
 }
 
@@ -596,6 +614,7 @@ class TestDelegationSimple
 class TestDelegationDependency
 {
     public $delgateCalled = false;
+
     public function __construct(TestDelegationSimple $testDelegationSimple)
     {
     }
@@ -617,14 +636,14 @@ function createTestDelegationDependency(TestDelegationSimple $testDelegationSimp
     return $instance;
 }
 
-
 class BaseExecutableClass
 {
-    public function foo()
+    public static function bar()
     {
         return 'This is the BaseExecutableClass';
     }
-    public static function bar()
+
+    public function foo()
     {
         return 'This is the BaseExecutableClass';
     }
@@ -632,11 +651,12 @@ class BaseExecutableClass
 
 class ExtendsExecutableClass extends BaseExecutableClass
 {
-    public function foo()
+    public static function bar()
     {
         return 'This is the ExtendsExecutableClass';
     }
-    public static function bar()
+
+    public function foo()
     {
         return 'This is the ExtendsExecutableClass';
     }
@@ -675,7 +695,8 @@ function getDelegateClosureInGlobalScope()
 class CloneTest
 {
     public $injector;
-    public function __construct(\Auryn\Injector $injector)
+
+    public function __construct(Injector $injector)
     {
         $this->injector = clone $injector;
     }
@@ -704,32 +725,48 @@ class DependencyChainTest
     }
 }
 
-class ParentWithConstructor {
+class ParentWithConstructor
+{
     public $foo;
-    function __construct($foo) {
+
+    public function __construct($foo)
+    {
         $this->foo = $foo;
     }
 }
 
-class ChildWithoutConstructor extends ParentWithConstructor {
+class ChildWithoutConstructor extends ParentWithConstructor
+{
 }
 
-class DelegateA {}
-class DelegatingInstanceA {
-    public function __construct(DelegateA $a) {
+class DelegateA
+{
+}
+
+class DelegatingInstanceA
+{
+    public function __construct(DelegateA $a)
+    {
         $this->a = $a;
     }
 }
 
-class DelegateB {}
-class DelegatingInstanceB {
-    public function __construct(DelegateB $b) {
+class DelegateB
+{
+}
+
+class DelegatingInstanceB
+{
+    public function __construct(DelegateB $b)
+    {
         $this->b = $b;
     }
 }
 
-class ThrowsExceptionInConstructor {
-    public function __construct() {
+class ThrowsExceptionInConstructor
+{
+    public function __construct()
+    {
         throw new \Exception('Exception in constructor');
     }
 }

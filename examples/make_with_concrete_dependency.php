@@ -1,15 +1,17 @@
 <?php
 
-use Auryn\Injector;
+use Amp\Injector\Injector;
 
 require __DIR__ . "/../vendor/autoload.php";
 
 $injector = new Injector;
 
-class A {
+class A
+{
     public $std;
 
-    public function __construct(stdClass $std) {
+    public function __construct(stdClass $std)
+    {
         $this->std = $std;
     }
 }

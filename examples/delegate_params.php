@@ -2,23 +2,26 @@
 
 require __DIR__ . "/../vendor/autoload.php";
 
-class A {
+class A
+{
     private $a;
     private $b;
 
-    public function __construct(stdClass $a, stdClass $b) {
+    public function __construct(stdClass $a, stdClass $b)
+    {
         $this->a = $a;
         $this->b = $b;
     }
 
-    public function print() {
+    public function print()
+    {
         print $this->a->foo;
         print $this->b->foo;
         print PHP_EOL;
     }
 }
 
-$injector = new Auryn\Injector;
+$injector = new Amp\Injector\Injector;
 
 $injector->define(A::class, [
     "+a" => function () {
