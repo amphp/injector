@@ -21,7 +21,7 @@ jobs:
           - operating-system: 'macos-latest'
             php-version: '8.0'
 
-    name: PHP ${{ matrix.php-version }} on ${{ runner.os }}
+    name: PHP ${{ matrix.php-version }} on ${{ matrix.operating-system }}
 
     runs-on: ${{ matrix.operating-system }}
 
