@@ -8,7 +8,7 @@ final class InjectionException extends InjectorException
      * Add a human readable version of the invalid callable to the standard 'invalid invokable' message.
      *
      * @param array           $inProgressMakes
-     * @param                 $callableOrMethodStr
+     * @param callable        $callableOrMethodStr
      * @param \Throwable|null $previous
      *
      * @return InjectionException
