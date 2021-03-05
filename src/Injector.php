@@ -387,7 +387,7 @@ final class Injector
     }
 
     /**
-     * @param $instance
+     * @param object $instance
      *
      * @throws ConfigException
      */
@@ -483,12 +483,12 @@ final class Injector
     }
 
     /**
-     * @param $className
+     * @param class-string $className
      *
      * @return object
      * @throws InjectionException
      */
-    private function instantiateWithoutConstructorParameters($className): object
+    private function instantiateWithoutConstructorParameters(string $className): object
     {
         $class = $this->reflector->getClass($className);
 
