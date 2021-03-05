@@ -7,7 +7,7 @@ interface Reflector
     /**
      * Retrieves ReflectionClass instances, caching them for future retrieval.
      *
-     * @param string $class
+     * @param class-string $class
      *
      * @return \ReflectionClass
      */
@@ -16,7 +16,7 @@ interface Reflector
     /**
      * Retrieves and caches the constructor (ReflectionMethod) for the specified class.
      *
-     * @param string $class
+     * @param class-string $class
      *
      * @return \ReflectionMethod|null
      */
@@ -25,7 +25,7 @@ interface Reflector
     /**
      * Retrieves and caches an array of constructor parameters for the given class.
      *
-     * @param string $class
+     * @param class-string $class
      *
      * @return \ReflectionParameter[]|null
      */
@@ -59,7 +59,7 @@ interface Reflector
     /**
      * Retrieves and caches a reflection for the specified class method.
      *
-     * @param mixed  $classNameOrInstance
+     * @param object|class-string $classNameOrInstance
      * @param string $methodName
      *
      * @return \ReflectionMethod
