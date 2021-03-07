@@ -2,7 +2,7 @@
 
 namespace Amp\Injector;
 
-class StandardReflector implements Reflector
+final class StandardReflector implements Reflector
 {
     public function getClass(string $class): \ReflectionClass
     {

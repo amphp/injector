@@ -1,7 +1,8 @@
 <?php
 
-namespace Amp\Injector;
+namespace Amp\Injector\Internal;
 
+/** @internal */
 final class Executable
 {
     private \ReflectionFunctionAbstract $callable;
@@ -30,19 +31,9 @@ final class Executable
             : $this->callable->invokeArgs($args);
     }
 
-    public function getCallable()
+    public function getCallable(): \ReflectionFunctionAbstract
     {
         return $this->callable;
-    }
-
-    public function getInvocationObject()
-    {
-        return $this->invocationObject;
-    }
-
-    public function isInstanceMethod()
-    {
-        return $this->isInstanceMethod;
     }
 
     private function setMethodCallable(\ReflectionMethod $method, $invocationObject): void

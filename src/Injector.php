@@ -2,6 +2,8 @@
 
 namespace Amp\Injector;
 
+use Amp\Injector\Internal\Executable;
+
 final class Injector
 {
     public const A_RAW = ':';
