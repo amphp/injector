@@ -18,20 +18,14 @@ class ContainerAdapter implements ContainerInterface
     public function get(string $id): mixed
     {
         if (!$this->has($id)) {
-            throw new class(
-                'Unable to get: ' . $id
-            ) extends \InvalidArgumentException implements NotFoundExceptionInterface {
+            throw new class('Unable to get: ' . $id) extends \InvalidArgumentException implements NotFoundExceptionInterface {
             };
         }
 
         try {
             return $this->injector->make($id);
         } catch (\Exception $previous) {
-            throw new class(
-                'Unable to get: ' . $id,
-                0,
-                $previous
-            ) extends \RuntimeException implements ContainerExceptionInterface {
+            throw new class('Unable to get: ' . $id, 0, $previous) extends \RuntimeException implements ContainerExceptionInterface {
             };
         }
     }
@@ -48,12 +42,12 @@ class ContainerAdapter implements ContainerInterface
             return $this->has[$id];
         }
 
-        $definitions = array_filter($this->injector->inspect($id, $filter));
+        $definitions = \array_filter($this->injector->inspect($id, $filter));
         if (!empty($definitions)) {
             return $this->has[$id] = true;
         }
 
-        if (!class_exists($id)) {
+        if (!\class_exists($id)) {
             return $this->has[$id] = false;
         }
 
