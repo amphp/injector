@@ -7,18 +7,21 @@ use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 
-class ContainerAdapter
+class ContainerAdapter implements ContainerInterface
 {
     protected array $has = [];
 
-    public function __construct(protected Injector $injector) { }
+    public function __construct(protected Injector $injector)
+    {
+    }
 
-    public function get(string $id) : mixed
+    public function get(string $id): mixed
     {
         if (!$this->has($id)) {
             throw new class(
                 'Unable to get: ' . $id
-            ) extends \InvalidArgumentException implements NotFoundExceptionInterface {};
+            ) extends \InvalidArgumentException implements NotFoundExceptionInterface {
+            };
         }
 
         try {
@@ -28,11 +31,12 @@ class ContainerAdapter
                 'Unable to get: ' . $id,
                 0,
                 $previous
-            ) extends \RuntimeException implements ContainerExceptionInterface {};
+            ) extends \RuntimeException implements ContainerExceptionInterface {
+            };
         }
     }
 
-    public function has(string $id) : bool
+    public function has(string $id): bool
     {
         static $filter = Injector::I_BINDINGS
             | Injector::I_DELEGATES
