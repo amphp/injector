@@ -2,7 +2,6 @@
 
 namespace Amp\Injector;
 
-use Amp\Injector\Injector;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
