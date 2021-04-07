@@ -30,7 +30,7 @@ final class StandardReflector implements Reflector
             return null;
         }
 
-        return $type ? (string) $type : null;
+        return $type ? $type->getName() : null;
     }
 
     public function getFunction(string $functionName): \ReflectionFunction
