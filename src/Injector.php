@@ -43,7 +43,6 @@ final class Injector
 
     private Reflector $reflector;
     private array $classDefinitions = [];
-    private array $paramDefinitions = [];
     private array $aliases = [];
     private array $shares = [];
     private array $prepares = [];
@@ -74,24 +73,6 @@ final class Injector
     {
         [, $normalizedName] = $this->resolveAlias($name);
         $this->classDefinitions[$normalizedName] = $args;
-
-        return $this;
-    }
-
-    /**
-     * Assign a global default value for all parameters named $paramName.
-     *
-     * Global parameter definitions are only used for parameters with no typehint, pre-defined or
-     * call-time definition.
-     *
-     * @param string $paramName The parameter name for which this value applies
-     * @param mixed  $value The value to inject for this parameter name
-     *
-     * @return self
-     */
-    public function defineParam(string $paramName, mixed $value): self
-    {
-        $this->paramDefinitions[$paramName] = $value;
 
         return $this;
     }
@@ -687,9 +668,7 @@ final class Injector
 
     private function buildArgumentFromReflectionParameter(\ReflectionParameter $parameter, ?string $className = null)
     {
-        if (\array_key_exists($parameter->name, $this->paramDefinitions)) {
-            $arg = $this->paramDefinitions[$parameter->name];
-        } elseif ($parameter->isDefaultValueAvailable()) {
+        if ($parameter->isDefaultValueAvailable()) {
             $arg = $parameter->getDefaultValue();
         } elseif ($parameter->isOptional()) {
             // This branch is required to work around PHP bugs where a parameter is optional

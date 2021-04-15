@@ -6,13 +6,6 @@ use PHPUnit\Framework\TestCase;
 
 class InjectorTest extends TestCase
 {
-    public function testArrayTypehintDoesNotEvaluatesAsClass(): void
-    {
-        $injector = new Injector;
-        $injector->defineParam('parameter', []);
-        $injector->execute('Amp\Injector\hasArrayDependency');
-    }
-
     public function testMakeInstanceInjectsSimpleConcreteDependency(): void
     {
         $injector = new Injector;
@@ -217,20 +210,9 @@ class InjectorTest extends TestCase
     public function testTypelessDefineForDependency(): void
     {
         $injector = new Injector;
-        $injector->defineParam('thumbnailSize', 128);
+        $injector->define(TypelessParameterDependency::class, [':thumbnailSize' => 128]);
         $testClass = $injector->make(RequiresDependencyWithTypelessParameters::class);
         self::assertEquals(128, $testClass->getThumbnailSize(), 'Typeless define was not injected correctly.');
-    }
-
-    public function testTypelessDefineForAliasedDependency(): void
-    {
-        $injector = new Injector;
-        $injector->defineParam('val', 42);
-
-        $injector->alias(TestNoExplicitDefine::class, ProviderTestCtorParamWithNoTypehintOrDefault::class);
-        $injector->make(ProviderTestCtorParamWithNoTypehintOrDefaultDependent::class);
-
-        $this->expectNotToPerformAssertions();
     }
 
     public function testMakeInstanceInjectsRawParametersDirectly(): void

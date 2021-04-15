@@ -80,17 +80,6 @@ class ProxyTest extends TestCase
         self::assertSame(42, $obj->testParam);
     }
 
-    public function testProxyParamDefinition(): void
-    {
-        $injector = new Injector;
-        $injector->proxy(NoTypehintNoDefaultConstructorClass::class, $this->createProxyHandler());
-        $injector->defineParam('arg', 42);
-
-        $obj = $injector->make(NoTypehintNoDefaultConstructorClass::class);
-
-        self::assertSame(42, $obj->testParam);
-    }
-
     public function testProxyPrepare(): void
     {
         $injector = new Injector();
