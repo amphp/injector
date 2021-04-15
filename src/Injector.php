@@ -22,8 +22,6 @@ final class Injector
     public const M_NON_EMPTY_STRING_ALIAS = "Invalid alias: non-empty string required at arguments 1 and 2";
     public const E_SHARED_CANNOT_ALIAS = 2;
     public const M_SHARED_CANNOT_ALIAS = "Cannot alias class %s to %s because it is currently shared";
-    public const E_SHARE_ARGUMENT = 3;
-    public const M_SHARE_ARGUMENT = "%s::share() requires a string class name or object instance at Argument 1; %s specified";
     public const E_ALIASED_CANNOT_SHARE = 4;
     public const M_ALIASED_CANNOT_SHARE = "Cannot share class %s because it is currently aliased to %s";
     public const E_INVOKABLE = 5;
