@@ -7,29 +7,29 @@ interface Reflector
     /**
      * Retrieves ReflectionClass instances, caching them for future retrieval.
      *
-     * @param class-string $class
+     * @param class-string $className
      *
      * @return \ReflectionClass
      */
-    public function getClass(string $class): \ReflectionClass;
+    public function getClass(string $className): \ReflectionClass;
 
     /**
      * Retrieves and caches the constructor (ReflectionMethod) for the specified class.
      *
-     * @param class-string $class
+     * @param class-string $className
      *
      * @return \ReflectionMethod|null
      */
-    public function getCtor(string $class): ?\ReflectionMethod;
+    public function getConstructor(string $className): ?\ReflectionMethod;
 
     /**
      * Retrieves and caches an array of constructor parameters for the given class.
      *
-     * @param class-string $class
+     * @param class-string $className
      *
      * @return \ReflectionParameter[]|null
      */
-    public function getCtorParams(string $class): ?array;
+    public function getConstructorParameters(string $className): ?array;
 
     /**
      * Retrieves the class type-hint from a given ReflectionParameter.
@@ -45,7 +45,7 @@ interface Reflector
      *
      * @return string|null
      */
-    public function getParamTypeHint(\ReflectionFunctionAbstract $function, \ReflectionParameter $param): ?string;
+    public function getParameterType(\ReflectionFunctionAbstract $function, \ReflectionParameter $param): ?string;
 
     /**
      * Retrieves and caches a reflection for the specified function.

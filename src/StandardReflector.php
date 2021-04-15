@@ -4,26 +4,26 @@ namespace Amp\Injector;
 
 final class StandardReflector implements Reflector
 {
-    public function getClass(string $class): \ReflectionClass
+    public function getClass(string $className): \ReflectionClass
     {
-        return new \ReflectionClass($class);
+        return new \ReflectionClass($className);
     }
 
-    public function getCtor(string $class): ?\ReflectionMethod
+    public function getConstructor(string $className): ?\ReflectionMethod
     {
-        $reflectionClass = new \ReflectionClass($class);
+        $reflectionClass = new \ReflectionClass($className);
 
         return $reflectionClass->getConstructor();
     }
 
-    public function getCtorParams($class): ?array
+    public function getConstructorParameters($className): ?array
     {
-        return ($reflectedCtor = $this->getCtor($class))
+        return ($reflectedCtor = $this->getConstructor($className))
             ? $reflectedCtor->getParameters()
             : null;
     }
 
-    public function getParamTypeHint(\ReflectionFunctionAbstract $function, \ReflectionParameter $param): ?string
+    public function getParameterType(\ReflectionFunctionAbstract $function, \ReflectionParameter $param): ?string
     {
         $type = $param->getType();
         if ($type instanceof \ReflectionNamedType && $type->isBuiltin()) {

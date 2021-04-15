@@ -525,7 +525,7 @@ final class Injector
     private function provisionInstance(string $className, string $normalizedClass, array $definition): object
     {
         try {
-            $constructor = $this->reflector->getCtor($className);
+            $constructor = $this->reflector->getConstructor($className);
 
             if (!$constructor) {
                 $object = $this->instantiateWithoutConstructorParameters($className);
@@ -535,7 +535,7 @@ final class Injector
                     \sprintf(self::M_NON_PUBLIC_CONSTRUCTOR, $className),
                     self::E_NON_PUBLIC_CONSTRUCTOR
                 );
-            } elseif ($constructorParameters = $this->reflector->getCtorParams($className)) {
+            } elseif ($constructorParameters = $this->reflector->getConstructorParameters($className)) {
                 $class = $this->reflector->getClass($className);
                 $definition = isset($this->classDefinitions[$normalizedClass])
                     ? \array_replace($this->classDefinitions[$normalizedClass], $definition)
@@ -665,7 +665,7 @@ final class Injector
         \ReflectionFunctionAbstract $callable,
         \ReflectionParameter $parameter
     ) {
-        $type = $this->reflector->getParamTypeHint($callable, $parameter);
+        $type = $this->reflector->getParameterType($callable, $parameter);
 
         if (!$type) {
             $value = null;
