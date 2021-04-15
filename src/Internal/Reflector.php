@@ -1,7 +1,8 @@
 <?php
 
-namespace Amp\Injector;
+namespace Amp\Injector\Internal;
 
+/** @internal */
 interface Reflector
 {
     /**

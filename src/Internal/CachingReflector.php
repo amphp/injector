@@ -1,7 +1,8 @@
 <?php
 
-namespace Amp\Injector;
+namespace Amp\Injector\Internal;
 
+/** @internal */
 final class CachingReflector implements Reflector
 {
     private Reflector $reflector;

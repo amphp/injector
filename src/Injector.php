@@ -2,7 +2,9 @@
 
 namespace Amp\Injector;
 
+use Amp\Injector\Internal\CachingReflector;
 use Amp\Injector\Internal\Executable;
+use Amp\Injector\Internal\Reflector;
 
 final class Injector
 {
@@ -52,9 +54,9 @@ final class Injector
     private array $preparesProxy = [];
     private array $inProgressMakes = [];
 
-    public function __construct(?Reflector $reflector = null)
+    public function __construct()
     {
-        $this->reflector = $reflector ?: new CachingReflector;
+        $this->reflector = new CachingReflector;
     }
 
     public function __clone()
