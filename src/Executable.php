@@ -1,19 +1,18 @@
 <?php
 
-namespace Amp\Injector\Internal;
+namespace Amp\Injector;
 
-/** @internal */
 final class Executable
 {
     private \ReflectionFunctionAbstract $callable;
     private ?object $invocationObject;
     private bool $isInstanceMethod;
 
-    public function __construct(\ReflectionFunctionAbstract $callable, ?object $invocationObject = null)
+    public function __construct(\ReflectionFunctionAbstract $callable, ?object $target = null)
     {
         if ($callable instanceof \ReflectionMethod) {
             $this->isInstanceMethod = true;
-            $this->setMethodCallable($callable, $invocationObject);
+            $this->setMethodCallable($callable, $target);
         } else {
             $this->isInstanceMethod = false;
             $this->callable = $callable;

@@ -3,7 +3,6 @@
 namespace Amp\Injector;
 
 use Amp\Injector\Internal\CachingReflector;
-use Amp\Injector\Internal\Executable;
 use Amp\Injector\Internal\Reflector;
 
 final class Injector
