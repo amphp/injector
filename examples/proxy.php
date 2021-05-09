@@ -61,9 +61,13 @@ $proxy = static function (string $className, callable $callback) {
 
 $injector = new Amp\Injector\Injector;
 $injector->alias(Engine::class, V8::class);
+
+// TODO: Proxy support
 $injector->proxy(Car::class, $proxy);
 $injector->proxy(V8::class, $proxy);
 $injector->defineParam('arg', 'some text');
+
+// TODO: Replacement for prepare?
 $injector->prepare(V8::class, function (V8 $v8, Amp\Injector\Injector $injector) {
     $v8->value = 42;
 });

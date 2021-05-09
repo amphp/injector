@@ -8,6 +8,7 @@ final class Executable
     private ?object $invocationObject;
     private bool $isInstanceMethod;
 
+    // TODO: Hide reflection?
     public function __construct(\ReflectionFunctionAbstract $callable, ?object $target = null)
     {
         if ($callable instanceof \ReflectionMethod) {
@@ -16,6 +17,21 @@ final class Executable
         } else {
             $this->isInstanceMethod = false;
             $this->callable = $callable;
+        }
+    }
+
+    private function setMethodCallable(\ReflectionMethod $method, $invocationObject): void
+    {
+        if (\is_object($invocationObject)) {
+            $this->callable = $method;
+            $this->invocationObject = $invocationObject;
+        } elseif ($method->isStatic() || $method->isConstructor()) {
+            $this->callable = $method;
+            $this->invocationObject = null;
+        } else {
+            throw new \InvalidArgumentException(
+                'ReflectionMethod callables must specify an invocation object'
+            );
         }
     }
 
@@ -30,26 +46,6 @@ final class Executable
             : $this->callable->invokeArgs($args);
     }
 
-    public function getCallable(): \ReflectionFunctionAbstract
-    {
-        return $this->callable;
-    }
-
-    private function setMethodCallable(\ReflectionMethod $method, $invocationObject): void
-    {
-        if (\is_object($invocationObject)) {
-            $this->callable = $method;
-            $this->invocationObject = $invocationObject;
-        } elseif ($method->isStatic()) {
-            $this->callable = $method;
-            $this->invocationObject = null;
-        } else {
-            throw new \InvalidArgumentException(
-                'ReflectionMethod callables must specify an invocation object'
-            );
-        }
-    }
-
     private function invokeClosureCompat(array $args): mixed
     {
         $scope = $this->callable->getClosureScopeClass();
@@ -60,5 +56,33 @@ final class Executable
         );
 
         return $closure(...$args);
+    }
+
+    public function getCallable(): \ReflectionFunctionAbstract
+    {
+        return $this->callable;
+    }
+
+    public function __toString(): string
+    {
+        /* if (\is_string($callableOrMethodStr)) {
+            $callableString = $callableOrMethodStr;
+        } elseif (\is_array($callableOrMethodStr) && \array_key_exists(0, $callableOrMethodStr) && \array_key_exists(
+            1,
+            $callableOrMethodStr
+        )) {
+            if (\is_string($callableOrMethodStr[0]) && \is_string($callableOrMethodStr[1])) {
+                $callableString = $callableOrMethodStr[0] . '::' . $callableOrMethodStr[1];
+            } elseif (\is_object($callableOrMethodStr[0]) && \is_string($callableOrMethodStr[1])) {
+                $callableString = \sprintf(
+                    "[object(%s), '%s']",
+                    \get_class($callableOrMethodStr[0]),
+                    $callableOrMethodStr[1]
+                );
+            }
+        } */
+
+        // TODO Proper implementation
+        return (string)$this->callable;
     }
 }

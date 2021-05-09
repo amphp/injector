@@ -8,6 +8,12 @@ use ProxyManager\Proxy\LazyLoadingInterface;
 
 class ProxyTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        self::markTestSkipped();
+    }
+
+
     public function testInstanceReturnedFromProxy(): void
     {
         $injector = new Injector;

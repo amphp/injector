@@ -1,10 +1,10 @@
 <?php
 
-use Amp\Injector\Injector;
+use Amp\Injector\Argument\Value;
+use Amp\Injector\ContextFactory;
+use function Amp\Injector\arguments;
 
 require __DIR__ . "/../vendor/autoload.php";
-
-$injector = new Injector;
 
 class A
 {
@@ -19,8 +19,11 @@ class A
 $stdClass = new stdClass;
 $stdClass->foo = "foobar";
 
-$a = $injector->make(A::class, [
-    ":std" => $stdClass,
-]);
+$contextFactory = new ContextFactory;
+$contextFactory->singleton(A::class, A::class, arguments()->name('std', new Value($stdClass)));
+
+$context = $contextFactory->build();
+
+$a = $context->getType(A::class);
 
 print $a->std->foo . PHP_EOL;
