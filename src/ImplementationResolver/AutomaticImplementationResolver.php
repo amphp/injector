@@ -1,15 +1,14 @@
 <?php
 
-namespace Amp\Injector\TypeRules;
+namespace Amp\Injector\ImplementationResolver;
 
-use Amp\Injector\TypeRules;
+use Amp\Injector\ImplementationResolver;
 use Amp\Injector\InjectionException;
 use Amp\Injector\Internal\Reflector;
 use function Amp\Injector\Internal\normalizeClass;
 
 // TODO: Build precompiled version with this registry as fallback
-// TODO: Make immutable?
-final class AutomaticTypeRules implements TypeRules
+final class AutomaticImplementationResolver implements ImplementationResolver
 {
     /** @var string[][] */
     private array $identifiers = [];
@@ -37,9 +36,12 @@ final class AutomaticTypeRules implements TypeRules
         return \reset($candidates);
     }
 
-    public function add(string $class, string $id): void
+    public function with(string $class, string $id): self
     {
-        $this->registerParents($id, $this->reflector->getClass($class));
+        $clone = clone $this;
+        $clone->registerParents($id, $clone->reflector->getClass($class));
+
+        return $clone;
     }
 
     private function registerParents(string $id, \ReflectionClass $class): void

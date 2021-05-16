@@ -35,6 +35,40 @@ final class Executable
         }
     }
 
+    public function getNumberOfRequiredParameters(): int
+    {
+        return $this->callable->getNumberOfRequiredParameters();
+    }
+
+    public function getNumberOfParameters(): int
+    {
+        return $this->callable->getNumberOfParameters();
+    }
+
+    public function getNameByPosition(int $index): string
+    {
+        $reflectionParameters = $this->getCallable()->getParameters();
+
+        return $reflectionParameters[$index]->getName() ?? throw new InjectionException('Unknown parameter: ' . $index);
+    }
+
+    public function getCallable(): \ReflectionFunctionAbstract
+    {
+        return $this->callable;
+    }
+
+    public function getPositionByName(string $name): int
+    {
+        $reflectionParameters = $this->getCallable()->getParameters();
+        foreach ($reflectionParameters as $reflectionParameter) {
+            if ($reflectionParameter->getName() === $name) {
+                return $reflectionParameter->getPosition();
+            }
+        }
+
+        throw new InjectionException('Unknown named parameter: ' . $name);
+    }
+
     public function __invoke(...$args)
     {
         if ($this->isInstanceMethod) {
@@ -56,11 +90,6 @@ final class Executable
         );
 
         return $closure(...$args);
-    }
-
-    public function getCallable(): \ReflectionFunctionAbstract
-    {
-        return $this->callable;
     }
 
     public function __toString(): string

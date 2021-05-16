@@ -2,7 +2,7 @@
 
 namespace Amp\Injector;
 
-interface TypeRules
+interface ImplementationResolver
 {
     public function get(string $class): ?string;
 }

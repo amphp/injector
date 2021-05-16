@@ -1,8 +1,10 @@
 <?php
 
-use Amp\Injector\Argument\Value;
-use Amp\Injector\ContextFactory;
+use Amp\Injector\ContextBuilder;
+use Amp\Injector\Provider\Value;
 use function Amp\Injector\arguments;
+use function Amp\Injector\autowire;
+use function Amp\Injector\singleton;
 
 require __DIR__ . "/../vendor/autoload.php";
 
@@ -19,10 +21,10 @@ class A
 $stdClass = new stdClass;
 $stdClass->foo = "foobar";
 
-$contextFactory = new ContextFactory;
-$contextFactory->singleton(A::class, A::class, arguments()->name('std', new Value($stdClass)));
+$contextBuilder = new ContextBuilder;
+$contextBuilder->add('a', singleton(autowire(A::class, arguments()->name('std', new Value($stdClass)))));
 
-$context = $contextFactory->build();
+$context = $contextBuilder->build();
 
 $a = $context->getType(A::class);
 

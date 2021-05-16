@@ -2,19 +2,19 @@
 
 namespace Amp\Injector;
 
-use Amp\Injector\Argument\TypeReference;
-use Amp\Injector\Argument\Value;
-use Amp\Injector\Provider\CallableProvider;
+use Amp\Injector\Provider\Dynamic;
+use Amp\Injector\Provider\Type;
+use Amp\Injector\Provider\Value;
 use PHPUnit\Framework\TestCase;
 
 class RootContextTest extends TestCase
 {
-    private ContextFactory $contextFactory;
+    private ContextBuilder $builder;
 
     public function testMakeInstanceInjectsSimpleConcreteDependency(): void
     {
-        $this->contextFactory->prototype('test', TestNeedsDep::class);
-        $this->contextFactory->prototype('dependency', TestDependency::class);
+        $this->builder->add('test', autowire(TestNeedsDep::class));
+        $this->builder->add('dependency', autowire(TestDependency::class));
 
         $instance = $this->whenGetType(TestNeedsDep::class);
 
@@ -26,21 +26,21 @@ class RootContextTest extends TestCase
 
     private function whenGetType(string $class): object
     {
-        $context = $this->contextFactory->build();
+        $context = $this->builder->build();
 
         return $context->getType($class);
     }
 
     public function testMakeInstanceReturnsNewInstanceIfClassHasNoConstructor(): void
     {
-        $this->contextFactory->prototype('test', TestNoConstructor::class);
+        $this->builder->add('test', autowire(TestNoConstructor::class));
 
         self::assertEquals(new TestNoConstructor, $this->whenGetType(TestNoConstructor::class));
     }
 
     public function testMakeInstanceReturnsAliasInstanceOnNonConcreteTypehint(): void
     {
-        $this->contextFactory->prototype(__METHOD__, DepImplementation::class);
+        $this->builder->add('test', autowire(DepImplementation::class));
 
         self::assertEquals(new DepImplementation, $this->whenGetType(DepInterface::class));
     }
@@ -48,25 +48,25 @@ class RootContextTest extends TestCase
     public function testMakeInstanceThrowsExceptionOnInterfaceWithoutAlias(): void
     {
         $this->expectException(InjectionException::class);
-        $this->expectExceptionMessage('No definition found for Amp\Injector\DepInterface');
+        $this->expectExceptionMessage('No implementation found for type Amp\Injector\DepInterface');
 
         $this->whenGetType(DepInterface::class);
     }
 
     public function testMakeInstanceThrowsExceptionOnNonConcreteCtorParamWithoutImplementation(): void
     {
-        $this->contextFactory->prototype('test', RequiresInterface::class);
+        $this->builder->add('test', autowire(RequiresInterface::class));
 
         $this->expectException(InjectionException::class);
-        $this->expectExceptionMessage('No definition found for Amp\Injector\DepInterface');
+        $this->expectExceptionMessage('No implementation found for type Amp\Injector\DepInterface');
 
         $this->whenGetType(RequiresInterface::class);
     }
 
     public function testMakeInstanceBuildsNonConcreteCtorParamWithAlias(): void
     {
-        $this->contextFactory->prototype('impl', DepImplementation::class);
-        $this->contextFactory->prototype('reqInterface', RequiresInterface::class);
+        $this->builder->add('impl', autowire(DepImplementation::class));
+        $this->builder->add('reqInterface', autowire(RequiresInterface::class));
 
         $object = $this->whenGetType(RequiresInterface::class);
 
@@ -75,7 +75,7 @@ class RootContextTest extends TestCase
 
     public function testMakeInstancePassesNullCtorParameterIfNoTypehintOrDefaultCanBeDetermined(): void
     {
-        $this->contextFactory->prototype('test', ProvTestNoDefinitionNullDefaultClass::class);
+        $this->builder->add('test', autowire(ProvTestNoDefinitionNullDefaultClass::class));
 
         $object = $this->whenGetType(ProvTestNoDefinitionNullDefaultClass::class);
 
@@ -85,8 +85,8 @@ class RootContextTest extends TestCase
 
     public function testMakeInstanceReturnsSharedInstanceIfAvailable(): void
     {
-        $this->contextFactory->prototype('depImpl', DepImplementation::class);
-        $this->contextFactory->singleton('reqInterface', RequiresInterface::class, arguments()->name('dep', new TypeReference(DepImplementation::class)));
+        $this->builder->add('depImpl', autowire(DepImplementation::class));
+        $this->builder->add('reqInterface', singleton(autowire( RequiresInterface::class, arguments()->name('dep', new Type(DepImplementation::class)))));
 
         $object1 = $this->whenGetType(RequiresInterface::class);
 
@@ -116,10 +116,10 @@ class RootContextTest extends TestCase
 
     public function testMakeInstanceUsesReflectionForUnknownParamsInMultiBuildWithDeps(): void
     {
-        $this->contextFactory->prototype('a', TestDependency::class);
-        $this->contextFactory->prototype('b', TestNeedsDep::class);
-        $this->contextFactory->prototype('c', TestMultiDepsWithCtor::class, arguments()->name('val1', new TypeReference(TestDependency::class)));
-        $this->contextFactory->prototype('d', NoTypehintNoDefaultConstructorClass::class);
+        $this->builder->add('a',  autowire(TestDependency::class));
+        $this->builder->add('b',  autowire(TestNeedsDep::class));
+        $this->builder->add('c',  autowire(TestMultiDepsWithCtor::class, arguments()->name('val1', new Type(TestDependency::class))));
+        $this->builder->add('d',  autowire(NoTypehintNoDefaultConstructorClass::class));
 
         $object = $this->whenGetType(TestMultiDepsWithCtor::class);
 
@@ -137,8 +137,8 @@ class RootContextTest extends TestCase
     {
         require_once __DIR__ . "/fixtures_5_6.php";
 
-        $this->contextFactory->prototype('dep', TestDependency::class);
-        $this->contextFactory->prototype('test', NoTypehintNoDefaultConstructorVariadicClass::class);
+        $this->builder->add('dep', autowire(TestDependency::class));
+        $this->builder->add('test', autowire(NoTypehintNoDefaultConstructorVariadicClass::class));
 
         $object = $this->whenGetType(
             NoTypehintNoDefaultConstructorVariadicClass::class,
@@ -152,8 +152,8 @@ class RootContextTest extends TestCase
     {
         require_once __DIR__ . "/fixtures_5_6.php";
 
-        $this->contextFactory->prototype('dep', TestDependency::class);
-        $this->contextFactory->prototype('test', TypehintNoDefaultConstructorVariadicClass::class, arguments()->name('arg', new TypeReference(TestDependency::class)));
+        $this->builder->add('dep', autowire(TestDependency::class));
+        $this->builder->add('test', autowire(TypehintNoDefaultConstructorVariadicClass::class, arguments()->name('arg', new Type(TestDependency::class))));
 
         $object = $this->whenGetType(TypehintNoDefaultConstructorVariadicClass::class);
 
@@ -164,7 +164,7 @@ class RootContextTest extends TestCase
 
     public function testMakeInstanceThrowsExceptionOnUntypehintedParameterWithoutDefinitionOrDefault(): void
     {
-        $this->contextFactory->prototype('test', InjectorTestCtorParamWithNoTypehintOrDefault::class);
+        $this->builder->add('test', autowire(InjectorTestCtorParamWithNoTypehintOrDefault::class));
 
         $this->expectException(InjectionException::class);
         $this->expectExceptionMessage('Failed to provide argument #0 ($val), because no definition exists to provide it');
@@ -174,18 +174,18 @@ class RootContextTest extends TestCase
 
     public function testMakeInstanceThrowsExceptionOnUninstantiableTypehintWithoutDefinition(): void
     {
-        $this->contextFactory->prototype('test', RequiresInterface::class);
+        $this->builder->add('test', autowire(RequiresInterface::class));
 
         $this->expectException(InjectionException::class);
-        $this->expectExceptionMessage('No definition found for Amp\Injector\DepInterface');
+        $this->expectExceptionMessage('No implementation found for type Amp\Injector\DepInterface');
 
         $this->whenGetType(RequiresInterface::class);
     }
 
     public function testTypelessDefineForDependency(): void
     {
-        $this->contextFactory->prototype('test', TypelessParameterDependency::class, arguments()->name('thumbnailSize', new Value(128)));
-        $this->contextFactory->prototype('main', RequiresDependencyWithTypelessParameters::class);
+        $this->builder->add('test', autowire(TypelessParameterDependency::class, arguments()->name('thumbnailSize', new Value(128))));
+        $this->builder->add('main', autowire(RequiresDependencyWithTypelessParameters::class));
 
         $object = $this->whenGetType(RequiresDependencyWithTypelessParameters::class);
 
@@ -194,14 +194,14 @@ class RootContextTest extends TestCase
 
     public function testMakeInstanceInjectsRawParametersDirectly(): void
     {
-        $this->contextFactory->prototype(__METHOD__, InjectorTestRawCtorParams::class, arguments()
+        $this->builder->add('test', autowire(InjectorTestRawCtorParams::class, arguments()
             ->name('string', new Value('string'))
             ->name('obj', new Value(new \StdClass))
             ->name('int', new Value(42))
             ->name('array', new Value([]))
             ->name('float', new Value(9.3))
             ->name('bool', new Value(true))
-            ->name('null', new Value(null))
+            ->name('null', new Value(null)))
         );
 
         $object = $this->whenGetType(InjectorTestRawCtorParams::class);
@@ -219,7 +219,7 @@ class RootContextTest extends TestCase
     {
         $callable = $this->createMock(CallableMock::class);
 
-        $this->contextFactory->add(__METHOD__, TestDependency::class, new CallableProvider($callable));
+        $this->builder->add('test', new Dynamic($callable));
 
         $callable->expects(self::once())
             ->method('__invoke')
@@ -228,12 +228,12 @@ class RootContextTest extends TestCase
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('test exception');
 
-        $this->whenGetType(TestDependency::class);
+        $this->whenGet('test');
     }
 
     public function testMakeInstanceHandlesNamespacedClasses(): void
     {
-        $this->contextFactory->prototype('test', SomeClassName::class);
+        $this->builder->add('test', autowire(SomeClassName::class));
 
         $this->whenGetType(SomeClassName::class);
 
@@ -248,9 +248,9 @@ class RootContextTest extends TestCase
             ->method('__invoke')
             ->willReturn(new TestDependency);
 
-        $this->contextFactory->add(__METHOD__, TestDependency::class, new CallableProvider($callable));
+        $this->builder->add('test', new Dynamic($callable));
 
-        $object = $this->whenGetType(TestDependency::class);
+        $object = $this->whenGet('test');
 
         self::assertInstanceOf(TestDependency::class, $object);
     }
@@ -259,7 +259,7 @@ class RootContextTest extends TestCase
     {
         self::markTestSkipped('Executable for delegation is not implemented, yet');
 
-        $this->contextFactory->add('test', 'StdClass', new CallableProvider(StringStdClassDelegateMock::class));
+        $this->builder->add('test', new Dynamic(StringStdClassDelegateMock::class));
 
         $object = $this->whenGetType('StdClass');
 
@@ -273,23 +273,23 @@ class RootContextTest extends TestCase
         $this->expectException(InjectionException::class);
         $this->expectExceptionMessage('Amp\Injector\Injector::delegate expects a valid callable or executable class::method string at Argument 2 but received \'SomeClassThatDefinitelyDoesNotExistForReal\'');
 
-        $this->contextFactory->add('test', 'StdClass', new CallableProvider('SomeClassThatDefinitelyDoesNotExistForReal'));
+        $this->builder->add('test', new Dynamic('SomeClassThatDefinitelyDoesNotExistForReal'));
     }
 
     public function testMakeInstanceThrowsExceptionOnUntypehintedParameterWithNoDefinition(): void
     {
-        $this->contextFactory->prototype('test', RequiresInterface::class);
+        $this->builder->add('test', autowire(RequiresInterface::class));
 
         $this->expectException(InjectionException::class);
-        $this->expectExceptionMessage('No definition found for Amp\Injector\DepInterface');
+        $this->expectExceptionMessage('No implementation found for type Amp\Injector\DepInterface');
 
         $this->whenGetType(RequiresInterface::class);
     }
 
     public function testDefineAssignsPassedDefinition(): void
     {
-        $this->contextFactory->prototype('dep', DepImplementation::class);
-        $this->contextFactory->prototype('test', RequiresInterface::class, arguments()->name('dep', new TypeReference(DepImplementation::class)));
+        $this->builder->add('dep', autowire(DepImplementation::class));
+        $this->builder->add('test', autowire(RequiresInterface::class, arguments()->name('dep', new Type(DepImplementation::class))));
 
         self::assertInstanceOf(RequiresInterface::class, $this->whenGetType(RequiresInterface::class));
     }
@@ -299,7 +299,7 @@ class RootContextTest extends TestCase
         $testShare = new \StdClass;
         $testShare->test = 42;
 
-        $this->contextFactory->value('std', $testShare);
+        $this->builder->add('std', new Value($testShare));
 
         $testShare->test = 'test';
 
@@ -309,7 +309,7 @@ class RootContextTest extends TestCase
 
     private function whenGet(string $id): mixed
     {
-        $context = $this->contextFactory->build();
+        $context = $this->builder->build();
 
         return $context->get($id);
     }
@@ -338,7 +338,7 @@ class RootContextTest extends TestCase
     {
         self::markTestSkipped('No executable factory, yet');
 
-        $this->contextFactory->add('test', MadeByDelegate::class, new CallableProvider(CallableDelegateClassTest::class));
+        $this->builder->add('test', new Dynamic(CallableDelegateClassTest::class));
 
         self::assertInstanceof(MadeByDelegate::class, $this->whenGetType(MadeByDelegate::class));
     }
@@ -347,7 +347,7 @@ class RootContextTest extends TestCase
     {
         self::markTestSkipped('No executable delegate, yet');
 
-        $this->contextFactory->add(__METHOD__, MadeByDelegate::class, new CallableProvider([CallableDelegateClassTest::class, '__invoke']));
+        $this->builder->add(__METHOD__, new Dynamic([CallableDelegateClassTest::class, '__invoke']));
 
         self::assertInstanceof(MadeByDelegate::class, $this->whenGetType(MadeByDelegate::class));
     }
@@ -359,7 +359,7 @@ class RootContextTest extends TestCase
         $this->expectException(InjectionException::class);
         $this->expectExceptionMessage('FunctionWhichDoesNotExist');
 
-        $this->contextFactory->add(__METHOD__, DelegatableInterface::class, new CallableProvider('FunctionWhichDoesNotExist'));
+        $this->builder->add(__METHOD__, new Dynamic('FunctionWhichDoesNotExist'));
     }
 
     public function testUnknownDelegationMethod(): void
@@ -369,7 +369,7 @@ class RootContextTest extends TestCase
         $this->expectException(InjectionException::class);
         $this->expectExceptionMessage('stdClass');
 
-        $this->contextFactory->add(__METHOD__, DelegatableInterface::class, new CallableProvider([\stdClass::class, 'methodWhichDoesNotExist']));
+        $this->builder->add(__METHOD__, new Dynamic([\stdClass::class, 'methodWhichDoesNotExist']));
     }
 
 //    /**
@@ -545,7 +545,7 @@ class RootContextTest extends TestCase
     {
         self::markTestSkipped('No autowiring of unknown dependencies, yet');
 
-        $this->contextFactory->prototype('test', TestMissingDependency::class);
+        $this->builder->add('test', autowire(TestMissingDependency::class));
 
         $this->expectException(InjectionException::class);
         $this->expectExceptionMessage('Could not make Amp\Injector\TypoInTypehint: Class "Amp\Injector\TypoInTypehint" does not exist');
@@ -555,9 +555,9 @@ class RootContextTest extends TestCase
 
     public function testAliasingConcreteClasses(): void
     {
-        $this->contextFactory->prototype('1', ConcreteClass1::class);
-        $this->contextFactory->prototype('2', ConcreteClass2::class);
-        $this->contextFactory->primary(ConcreteClass1::class, '2');
+        $this->builder->add('1',  autowire(ConcreteClass1::class));
+        $this->builder->add('2',  autowire(ConcreteClass2::class));
+        $this->builder->primary(ConcreteClass1::class, '2');
 
         $object = $this->whenGetType(ConcreteClass1::class);
 
@@ -566,7 +566,7 @@ class RootContextTest extends TestCase
 
     public function testSharedByAliasedInterfaceName(): void
     {
-        $this->contextFactory->singleton(__METHOD__, SharedClass::class);
+        $this->builder->add('test', singleton(autowire(SharedClass::class)));
 
         $object1 = $this->whenGetType(SharedAliasedInterface::class);
         $object2 = $this->whenGetType(SharedAliasedInterface::class);
@@ -576,7 +576,7 @@ class RootContextTest extends TestCase
 
     public function testNotSharedByAliasedInterfaceName(): void
     {
-        $this->contextFactory->prototype(__METHOD__, NotSharedClass::class);
+        $this->builder->add('test', autowire(NotSharedClass::class));
 
         $object1 = $this->whenGetType(SharedAliasedInterface::class);
         $object2 = $this->whenGetType(SharedAliasedInterface::class);
@@ -586,8 +586,8 @@ class RootContextTest extends TestCase
 
     public function testSharedByAliasedInterfaceNameWithParameter(): void
     {
-        $this->contextFactory->singleton('shared', SharedClass::class);
-        $this->contextFactory->prototype('alias', ClassWithAliasAsParameter::class);
+        $this->builder->add('shared', singleton(autowire(SharedClass::class)));
+        $this->builder->add('alias', autowire(ClassWithAliasAsParameter::class));
 
         $sharedObject = $this->whenGetType(SharedAliasedInterface::class);
         $childClass = $this->whenGetType(ClassWithAliasAsParameter::class);
@@ -597,10 +597,10 @@ class RootContextTest extends TestCase
 
     public function testDependencyWhereSharedWithProtectedConstructor(): void
     {
-        $this->contextFactory->prototype('test', TestNeedsDepWithProtCons::class);
+        $this->builder->add('test', autowire(TestNeedsDepWithProtCons::class));
 
         $inner = TestDependencyWithProtectedConstructor::create();
-        $this->contextFactory->value('inner', $inner);
+        $this->builder->add('inner', new Value($inner));
 
         $outer = $this->whenGetType(TestNeedsDepWithProtCons::class);
 
@@ -609,9 +609,9 @@ class RootContextTest extends TestCase
 
     public function testBugWithReflectionPoolIncorrectlyReturningBadInfo(): void
     {
-        $this->contextFactory->prototype('a', ClassOuter::class);
-        $this->contextFactory->prototype('b', ClassInnerA::class);
-        $this->contextFactory->prototype('c', ClassInnerB::class);
+        $this->builder->add('a',  autowire(ClassOuter::class));
+        $this->builder->add('b',  autowire(ClassInnerA::class));
+        $this->builder->add('c',  autowire(ClassInnerB::class));
 
         $object = $this->whenGetType(ClassOuter::class);
 
@@ -644,7 +644,7 @@ class RootContextTest extends TestCase
 
     public function testNonConcreteDependencyWithDefault(): void
     {
-        $this->contextFactory->prototype('test', NonConcreteDependencyWithDefaultValue::class);
+        $this->builder->add('test', autowire(NonConcreteDependencyWithDefaultValue::class));
 
         $object = $this->whenGetType(NonConcreteDependencyWithDefaultValue::class);
 
@@ -656,8 +656,8 @@ class RootContextTest extends TestCase
     {
         self::markTestSkipped('FIXME');
 
-        $this->contextFactory->singleton('a', ImplementsInterface::class);
-        $this->contextFactory->singleton('b', NonConcreteDependencyWithDefaultValue::class);
+        $this->builder->add('a', singleton(autowire( ImplementsInterface::class)));
+        $this->builder->add('b', singleton(autowire( NonConcreteDependencyWithDefaultValue::class)));
 
         $class = $this->whenGetType(NonConcreteDependencyWithDefaultValue::class);
 
@@ -670,7 +670,7 @@ class RootContextTest extends TestCase
     {
         self::markTestSkipped('No executable delegate, yet');
 
-        $this->contextFactory->add('foo', DelegatableInterface::class, new CallableProvider(ImplementsInterfaceFactory::class));
+        $this->builder->add('foo', new Dynamic(ImplementsInterfaceFactory::class));
 
         $class = $this->whenGetType(NonConcreteDependencyWithDefaultValue::class);
 
@@ -682,14 +682,14 @@ class RootContextTest extends TestCase
     {
         self::markTestSkipped('FIXME');
 
-        $this->contextFactory->prototype('test', ConcreteDependencyWithDefaultValue::class);
+        $this->builder->add('test', autowire(ConcreteDependencyWithDefaultValue::class));
 
         // Instance is not shared, null default is used for dependency
         $instance = $this->whenGetType(ConcreteDependencyWithDefaultValue::class);
         self::assertNull($instance->dependency);
 
         // Instance is explicitly shared, $instance is used for dependency
-        $this->contextFactory->value('std', new \stdClass);
+        $this->builder->add('std', new Value(new \stdClass));
 
         $instance = $this->whenGetType(ConcreteDependencyWithDefaultValue::class);
         self::assertInstanceOf(\stdClass::class, $instance->dependency);
@@ -697,22 +697,18 @@ class RootContextTest extends TestCase
 
     public function testAppropriateExceptionThrownOnNonPublicConstructor(): void
     {
-        $this->contextFactory->prototype('test', HasNonPublicConstructor::class);
-
         $this->expectException(InjectionException::class);
         $this->expectExceptionMessage('Cannot instantiate protected/private constructor in class Amp\Injector\HasNonPublicConstructor');
 
-        $this->whenGetType(HasNonPublicConstructor::class);
+        $this->builder->add('test', autowire(HasNonPublicConstructor::class));
     }
 
     public function testAppropriateExceptionThrownOnNonPublicConstructorWithArgs(): void
     {
-        $this->contextFactory->prototype('test', HasNonPublicConstructorWithArgs::class);
-
         $this->expectException(InjectionException::class);
         $this->expectExceptionMessage('Cannot instantiate protected/private constructor in class Amp\Injector\HasNonPublicConstructorWithArgs');
 
-        $this->whenGetType(HasNonPublicConstructorWithArgs::class);
+        $this->builder->add('test', autowire(HasNonPublicConstructorWithArgs::class));
     }
 
     // public function testMakeExecutableFailsOnNonExistentFunction(): void
@@ -756,7 +752,7 @@ class RootContextTest extends TestCase
 
     public function testDefineWithBackslashAndMakeWithoutBackslash(): void
     {
-        $this->contextFactory->prototype('test', '\\' . SimpleNoTypehintClass::class, arguments()->name('arg', new Value('tested')));
+        $this->builder->add('test', autowire('\\' . SimpleNoTypehintClass::class, arguments()->name('arg', new Value('tested'))));
 
         $object = $this->whenGetType(SimpleNoTypehintClass::class);
 
@@ -765,7 +761,7 @@ class RootContextTest extends TestCase
 
     public function testDefineWithoutBackslashAndMakeWithBackslash(): void
     {
-        $this->contextFactory->prototype('test', SimpleNoTypehintClass::class, arguments()->name('arg', new Value('tested')));
+        $this->builder->add('test', autowire(SimpleNoTypehintClass::class, arguments()->name('arg', new Value('tested'))));
 
         $object = $this->whenGetType('\\' . SimpleNoTypehintClass::class);
 
@@ -796,7 +792,8 @@ class RootContextTest extends TestCase
 
     public function testDelegationFunction(): void
     {
-        $this->contextFactory->add('test', TestDelegationSimple::class, new CallableProvider('Amp\Injector\createTestDelegationSimple'));
+        $this->builder->add('test', new Dynamic('Amp\Injector\createTestDelegationSimple'));
+        $this->builder->primary(TestDelegationSimple::class, 'test');
 
         $object = $this->whenGetType(TestDelegationSimple::class);
 
@@ -808,7 +805,7 @@ class RootContextTest extends TestCase
     {
         self::markTestSkipped('Not implemented');
 
-        $this->contextFactory->add('test', TestDelegationDependency::class, new CallableProvider('Amp\Injector\createTestDelegationDependency'));
+        $this->builder->add('test', new Dynamic('Amp\Injector\createTestDelegationDependency'));
 
         $object = $this->whenGetType(TestDelegationDependency::class);
 
@@ -837,7 +834,8 @@ class RootContextTest extends TestCase
     public function testDelegateClosure(): void
     {
         $delegateClosure = getDelegateClosureInGlobalScope();
-        $this->contextFactory->add('test', DelegateClosureInGlobalScope::class, new CallableProvider($delegateClosure));
+        $this->builder->add('test', new Dynamic($delegateClosure));
+        $this->builder->primary(DelegateClosureInGlobalScope::class, 'test');
 
         $this->whenGetType(DelegateClosureInGlobalScope::class);
 
@@ -852,7 +850,7 @@ class RootContextTest extends TestCase
             return null;
         };
 
-        $this->contextFactory->add('test', SomeClassName::class, new CallableProvider($delegate));
+        $this->builder->add('test', new Dynamic($delegate));
 
         $this->expectException(InjectionException::class);
         $this->expectExceptionMessage('Making amp\injector\someclassname did not result in an object, instead result is of type \'NULL\'');
@@ -864,7 +862,7 @@ class RootContextTest extends TestCase
     {
         self::markTestSkipped('FIXME');
 
-        $this->contextFactory->add('test', SomeClassName::class, new CallableProvider(fn() => 'ThisIsNotAClass'));
+        $this->builder->add('test', new Dynamic(fn() => 'ThisIsNotAClass'));
 
         $this->expectException(InjectionException::class);
         $this->expectExceptionMessage('Making amp\injector\someclassname did not result in an object, instead result is of type \'string\'');
@@ -874,8 +872,8 @@ class RootContextTest extends TestCase
 
     public function testChildWithoutConstructorWorks(): void
     {
-        $this->contextFactory->singleton('parent', ParentWithConstructor::class, arguments()->name('foo', new Value('parent')));
-        $this->contextFactory->singleton('child', ChildWithoutConstructor::class, arguments()->name('foo', new Value('child')));
+        $this->builder->add('parent', singleton(autowire(ParentWithConstructor::class, arguments()->name('foo', new Value('parent')))));
+        $this->builder->add('child', singleton(autowire(ChildWithoutConstructor::class, arguments()->name('foo', new Value('child')))));
 
         $child = $this->whenGetType(ChildWithoutConstructor::class);
         self::assertEquals('child', $child->foo);
@@ -890,8 +888,8 @@ class RootContextTest extends TestCase
 
     public function testChildWithoutConstructorMissingParam(): void
     {
-        $this->contextFactory->singleton('parent', ParentWithConstructor::class, arguments()->name('foo', new Value('parent')));
-        $this->contextFactory->singleton('child', ChildWithoutConstructor::class, arguments());
+        $this->builder->add('parent', singleton(autowire(ParentWithConstructor::class, arguments()->name('foo', new Value('parent')))));
+        $this->builder->add('child', singleton(autowire(ChildWithoutConstructor::class, arguments())));
 
         $this->expectException(InjectionException::class);
         $this->expectExceptionMessage('Failed to provide argument #0 ($foo), because no definition exists');
@@ -901,7 +899,7 @@ class RootContextTest extends TestCase
 
     public function testThatExceptionInConstructorDoesntCauseCyclicDependencyException(): void
     {
-        $this->contextFactory->prototype('test', ThrowsExceptionInConstructor::class);
+        $this->builder->add('test', autowire(ThrowsExceptionInConstructor::class));
 
         try {
             $this->whenGetType(ThrowsExceptionInConstructor::class);
@@ -917,6 +915,6 @@ class RootContextTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->contextFactory = new ContextFactory;
+        $this->builder = new ContextBuilder;
     }
 }

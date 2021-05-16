@@ -1,8 +1,9 @@
 <?php
 
-use Amp\Injector\Argument\Delegate;
-use Amp\Injector\ContextFactory;
+use Amp\Injector\ContextBuilder;
+use Amp\Injector\Provider\Dynamic;
 use function Amp\Injector\arguments;
+use function Amp\Injector\autowire;
 
 require __DIR__ . "/../vendor/autoload.php";
 
@@ -28,16 +29,16 @@ class A
     }
 }
 
-$contextFactory = new ContextFactory;
-$contextFactory->prototype('a', A::class, arguments()->name('a', new Delegate(function () {
+$contextFactory = new ContextBuilder;
+$contextFactory->add('a', autowire(A::class, arguments()->name('a', new Dynamic(function () {
     $std = new stdClass;
     $std->foo = "foo";
     return $std;
-}))->name('b', new Delegate(function () {
+}))->name('b', new Dynamic(function () {
     $std = new stdClass;
     $std->foo = "bar";
     return $std;
-})));
+}))));
 
 $context = $contextFactory->build();
 
