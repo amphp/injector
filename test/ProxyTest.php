@@ -2,24 +2,49 @@
 
 namespace Amp\Injector;
 
+use Amp\Injector\Provider\ObjectProvider;
 use PHPUnit\Framework\TestCase;
 use ProxyManager\Factory\LazyLoadingValueHolderFactory;
 use ProxyManager\Proxy\LazyLoadingInterface;
 
 class ProxyTest extends TestCase
 {
-    protected function setUp(): void
+    private static function proxy(ObjectProvider $provider): Provider
     {
-        self::markTestSkipped();
-    }
+        return new class ($provider) implements Provider {
+            public function __construct(private ObjectProvider $provider)
+            {
+            }
 
+            public function get(Context $context): object
+            {
+                return (new LazyLoadingValueHolderFactory)->createProxy(
+                    $this->provider->getType(),
+                    function (&$object, $proxy, $method, $parameters, &$initializer) use ($context) {
+                        $object = $this->provider->get($context);
+                        $initializer = null;
+                    }
+                );
+            }
+
+            public function getType(): ?string
+            {
+                return $this->provider->getType();
+            }
+
+            public function getDependencies(Context $context): array
+            {
+                return [$this->provider];
+            }
+        };
+    }
 
     public function testInstanceReturnedFromProxy(): void
     {
-        $injector = new Injector;
-        $injector->proxy(TestDependency::class, $this->createProxyHandler());
+        $contextBuilder = new ContextBuilder;
+        $contextBuilder->add('test', self::proxy(autowire(TestDependency::class)));
 
-        $class = $injector->make(TestDependency::class);
+        $class = $contextBuilder->build()->getType(TestDependency::class);
 
         self::assertInstanceOf(TestDependency::class, $class);
         self::assertInstanceOf(LazyLoadingInterface::class, $class);
@@ -28,100 +53,35 @@ class ProxyTest extends TestCase
 
     public function testMakeInstanceInjectsSimpleConcreteDependencyProxy(): void
     {
-        $injector = new Injector;
-        $injector->proxy(TestDependency::class, $this->createProxyHandler());
+        $contextBuilder = new ContextBuilder;
+        $contextBuilder->add('test', self::proxy(autowire(TestDependency::class)));
+        $contextBuilder->add('parent', autowire(TestNeedsDep::class));
 
-        $needDep = $injector->make(TestNeedsDep::class);
+        $needDep = $contextBuilder->build()->getType(TestNeedsDep::class);
 
         self::assertInstanceOf(TestNeedsDep::class, $needDep);
     }
 
     public function testShareInstanceProxy(): void
     {
-        $injector = new Injector;
-        $injector->proxy(TestDependency::class, $this->createProxyHandler());
-        $injector->share(TestDependency::class);
+        $contextBuilder = new ContextBuilder;
+        $contextBuilder->add('test', singleton(self::proxy(autowire(TestDependency::class))));
+        $context = $contextBuilder->build();
 
-        $object1 = $injector->make(TestDependency::class);
-        $object2 = $injector->make(TestDependency::class);
+        $object1 = $context->getType(TestDependency::class);
+        $object2 = $context->getType(TestDependency::class);
 
         self::assertSame($object1, $object2);
     }
 
-    public function testProxyMakeInstanceReturnsAliasInstanceOnNonConcreteTypehint(): void
-    {
-        $injector = new Injector;
-        $injector->alias(DepInterface::class, DepImplementation::class);
-        $injector->proxy(DepInterface::class, $this->createProxyHandler());
-
-        $object = $injector->make(DepInterface::class);
-
-        self::assertInstanceOf(DepInterface::class, $object);
-        self::assertInstanceOf(DepImplementation::class, $object);
-        self::assertInstanceOf(LazyLoadingInterface::class, $object);
-    }
-
     public function testProxyDefinition(): void
     {
-        $injector = new Injector;
-        $injector->proxy(NoTypehintNoDefaultConstructorClass::class, $this->createProxyHandler());
-        $injector->define(NoTypehintNoDefaultConstructorClass::class, [
-            ':arg' => 42,
-        ]);
+        $contextBuilder = new ContextBuilder;
+        $contextBuilder->add('test', self::proxy(autowire(NoTypehintNoDefaultConstructorClass::class, arguments()->name('arg', value(42)))));
+        $contextBuilder->add('dependency', autowire(TestDependency::class));
 
-        $obj = $injector->make(NoTypehintNoDefaultConstructorClass::class);
+        $object = $contextBuilder->build()->getType(NoTypehintNoDefaultConstructorClass::class);
 
-        self::assertSame(42, $obj->testParam);
-    }
-
-    public function testProxyInjectionDefinition(): void
-    {
-        $injector = new Injector;
-        $injector->proxy(NoTypehintNoDefaultConstructorClass::class, $this->createProxyHandler());
-
-        $obj = $injector->make(NoTypehintNoDefaultConstructorClass::class, [
-            ':arg' => 42,
-        ]);
-
-        self::assertSame(42, $obj->testParam);
-    }
-
-    public function testProxyPrepare(): void
-    {
-        $injector = new Injector();
-        $injector->proxy(PreparesImplementationTest::class, $this->createProxyHandler());
-        $injector->prepare(PreparesImplementationTest::class, function (PreparesImplementationTest $obj, $injector) {
-            $obj->testProp = 42;
-        });
-
-        $obj = $injector->make(PreparesImplementationTest::class);
-
-        self::assertSame(42, $obj->testProp);
-    }
-
-    public function testProxyAssertDelegateOverrideProxy(): void
-    {
-        $injector = new Injector();
-        $injector->proxy(PreparesImplementationTest::class, function () {
-        });
-        $injector->delegate(PreparesImplementationTest::class, fn () => new PreparesImplementationTest);
-
-        $object = $injector->make(PreparesImplementationTest::class);
-
-        self::assertInstanceOf(PreparesImplementationTest::class, $object);
-        self::assertNotInstanceOf(LazyLoadingInterface::class, $object);
-    }
-
-    private function createProxyHandler(): \Closure
-    {
-        return static function (string $className, callable $callback) {
-            return (new LazyLoadingValueHolderFactory)->createProxy(
-                $className,
-                static function (&$object, $proxy, $method, $parameters, &$initializer) use ($callback) {
-                    $object = $callback();
-                    $initializer = null;
-                }
-            );
-        };
+        self::assertSame(42, $object->testParam);
     }
 }

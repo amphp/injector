@@ -1,6 +1,13 @@
 <?php
 
+use Amp\Injector\Context;
+use Amp\Injector\ContextBuilder;
+use Amp\Injector\Provider;
+use Amp\Injector\Provider\ObjectProvider;
 use ProxyManager\Factory\LazyLoadingValueHolderFactory;
+use function Amp\Injector\arguments;
+use function Amp\Injector\autowire;
+use function Amp\Injector\value;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -49,32 +56,48 @@ class Car
     }
 }
 
-$proxy = static function (string $className, callable $callback) {
-    return (new LazyLoadingValueHolderFactory)->createProxy(
-        $className,
-        static function (&$object, $proxy, $method, $parameters, &$initializer) use ($callback) {
-            $object = $callback();
-            $initializer = null;
+function proxy(ObjectProvider $provider): Provider
+{
+    return new class ($provider) implements Provider {
+        public function __construct(private ObjectProvider $provider)
+        {
         }
-    );
-};
 
-$injector = new Amp\Injector\Injector;
-$injector->alias(Engine::class, V8::class);
+        public function get(Context $context): object
+        {
+            return (new LazyLoadingValueHolderFactory)->createProxy(
+                $this->provider->getType(),
+                function (&$object, $proxy, $method, $parameters, &$initializer) use ($context) {
+                    $object = $this->provider->get($context);
+                    $initializer = null;
+                }
+            );
+        }
 
-// TODO: Proxy support
-$injector->proxy(Car::class, $proxy);
-$injector->proxy(V8::class, $proxy);
-$injector->defineParam('arg', 'some text');
+        public function getType(): ?string
+        {
+            return $this->provider->getType();
+        }
+
+        public function getDependencies(Context $context): array
+        {
+            return [$this->provider];
+        }
+    };
+}
+
+$contextBuilder = new ContextBuilder;
+$contextBuilder->add('car', proxy(autowire(Car::class)));
+$contextBuilder->add('engine', proxy(autowire(V8::class, arguments()->name('arg', value('some text')))));
 
 // TODO: Replacement for prepare?
-$injector->prepare(V8::class, function (V8 $v8, Amp\Injector\Injector $injector) {
-    $v8->value = 42;
-});
+// $contextBuilder->prepare(V8::class, function (V8 $v8, Amp\Injector\Injector $injector) {
+//     $v8->value = 42;
+// });
 
 print 'Configuration complete.' . PHP_EOL;
 
-$car = $injector->make(Car::class);
+$car = $contextBuilder->build()->getType(Car::class);
 
 print '$car is an instance of Car: ';
 \var_dump($car instanceof Car);
