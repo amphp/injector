@@ -1,7 +1,7 @@
 <?php
 
 use Amp\Injector\ContextBuilder;
-use Amp\Injector\Provider\Value;
+use Amp\Injector\Provider\ValueProvider;
 use function Amp\Injector\arguments;
 use function Amp\Injector\autowire;
 use function Amp\Injector\singleton;
@@ -22,7 +22,7 @@ $stdClass = new stdClass;
 $stdClass->foo = "foobar";
 
 $contextBuilder = new ContextBuilder;
-$contextBuilder->add('a', singleton(autowire(A::class, arguments()->name('std', new Value($stdClass)))));
+$contextBuilder->add('a', singleton(autowire(A::class, arguments()->name('std', new ValueProvider($stdClass)))));
 
 $context = $contextBuilder->build();
 

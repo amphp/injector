@@ -5,6 +5,7 @@ namespace Amp\Injector\ImplementationResolver;
 use Amp\Injector\ImplementationResolver;
 use Amp\Injector\InjectionException;
 use Amp\Injector\Internal\Reflector;
+use function Amp\Injector\Internal\getDefaultReflector;
 use function Amp\Injector\Internal\normalizeClass;
 
 // TODO: Build precompiled version with this registry as fallback
@@ -15,9 +16,9 @@ final class AutomaticImplementationResolver implements ImplementationResolver
 
     private Reflector $reflector;
 
-    public function __construct(Reflector $reflector)
+    public function __construct()
     {
-        $this->reflector = $reflector;
+        $this->reflector = getDefaultReflector();
     }
 
     public function get(string $class): ?string

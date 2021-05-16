@@ -5,6 +5,7 @@ namespace Amp\Injector;
 use Amp\Injector\ImplementationResolver\AutomaticImplementationResolver;
 use Amp\Injector\ImplementationResolver\NullImplementationResolver;
 use Amp\Injector\ImplementationResolver\PrimaryImplementationResolver;
+use function Amp\Injector\Internal\getDefaultReflector;
 
 final class ContextBuilder
 {
@@ -14,7 +15,7 @@ final class ContextBuilder
 
     public function __construct()
     {
-        $this->automaticImplementationResolver = new AutomaticImplementationResolver(getDefaultReflector());
+        $this->automaticImplementationResolver = new AutomaticImplementationResolver;
         $this->primaryImplementationResolver = new PrimaryImplementationResolver(new NullImplementationResolver);
         $this->context = new RootContext;
     }

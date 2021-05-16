@@ -5,18 +5,18 @@ namespace Amp\Injector\Provider;
 use Amp\Injector\Context;
 use Amp\Injector\Provider;
 
-final class Dynamic implements Provider
+final class IdentifierReference implements Provider
 {
-    private mixed $callable;
+    private string $identifier;
 
-    public function __construct(callable $callable)
+    public function __construct(string $identifier)
     {
-        $this->callable = $callable;
+        $this->identifier = $identifier;
     }
 
     public function get(Context $context): mixed
     {
-        return ($this->callable)($context);
+        return $context->get($this->identifier);
     }
 
     public function getType(): ?string
@@ -26,6 +26,6 @@ final class Dynamic implements Provider
 
     public function getDependencies(Context $context): array
     {
-        return [];
+        return [$context->getProvider($this->identifier)];
     }
 }

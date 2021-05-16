@@ -5,7 +5,7 @@ namespace Amp\Injector\Provider;
 use Amp\Injector\Context;
 use Amp\Injector\Provider;
 
-final class Type implements Provider
+final class TypeReference implements Provider
 {
     private string $class;
 

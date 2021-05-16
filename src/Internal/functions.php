@@ -11,3 +11,14 @@ function normalizeClass(string $class): string
 
     return \strtolower(\ltrim($class, '\\'));
 }
+
+function getDefaultReflector(): Reflector
+{
+    static $reflector = null;
+
+    if (!$reflector) {
+        $reflector = new CachingReflector(new StandardReflector);
+    }
+
+    return $reflector;
+}

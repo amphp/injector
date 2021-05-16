@@ -6,7 +6,7 @@ use Amp\Injector\Context;
 use Amp\Injector\LifecycleListener;
 use Amp\Injector\Provider;
 
-final class Singleton implements Provider, LifecycleListener
+final class SingletonProvider implements Provider, LifecycleListener
 {
     private Provider $provider;
 

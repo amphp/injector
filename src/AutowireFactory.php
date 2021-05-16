@@ -4,14 +4,15 @@ namespace Amp\Injector;
 
 use Amp\Injector\Internal\Reflector;
 use Amp\Injector\Provider\ObjectProvider;
+use function Amp\Injector\Internal\getDefaultReflector;
 
 final class AutowireFactory
 {
     private Reflector $reflector;
 
-    public function __construct(Reflector $reflector)
+    public function __construct()
     {
-        $this->reflector = $reflector;
+        $this->reflector = getDefaultReflector();
     }
 
     /**

@@ -2,10 +2,9 @@
 
 namespace Amp\Injector;
 
-use Amp\Injector\Provider\OptionalType;
-use Amp\Injector\Provider\Type;
-use Amp\Injector\Provider\Unknown;
-use Amp\Injector\Provider\Value;
+use Amp\Injector\Provider\OptionalTypeReference;
+use Amp\Injector\Provider\TypeReference;
+use Amp\Injector\Provider\ValueProvider;
 
 final class Arguments
 {
@@ -77,7 +76,12 @@ final class Arguments
             $arguments[$index] ??= $nameProvider;
             $arguments[$index] ??= $this->resolveAttributes($parameter);
             $arguments[$index] ??= $this->resolveTypes($parameter->getType());
-            $arguments[$index] ??= $this->resolveFallback($index, $parameter, $executable);
+
+            if (!$parameter->isVariadic()) {
+                $arguments[$index] ??= $this->resolveFallback($index, $parameter);
+            } else if ($arguments[$index] === null) {
+                unset($arguments[$index]);
+            }
         }
 
         return $arguments;
@@ -144,29 +148,35 @@ final class Arguments
         return $this->getUnique($candidates);
     }
 
-    private function resolveFallback(int $index, \ReflectionParameter $parameter, Executable $executable): Provider
+    /**
+     * @throws \ReflectionException
+     * @throws InjectionException
+     */
+    private function resolveFallback(int $index, \ReflectionParameter $parameter): Provider
     {
         $type = $parameter->getType();
         if ($type === null) {
-            return $parameter->isOptional()
-                ? new Value($parameter->getDefaultValue())
-                : new Unknown($index, $executable);
+            if (!$parameter->isOptional()) {
+                throw new InjectionException('Failed to determine argument #' . $index . ' ($' . $parameter->getName() . '), because no definition matches');
+            }
+
+            return new ValueProvider($parameter->getDefaultValue());
         }
 
         if ($type instanceof \ReflectionNamedType) {
             return $parameter->isOptional()
-                ? new OptionalType($type->getName(), new Value($parameter->getDefaultValue()))
-                : new Type($type->getName());
+                ? new OptionalTypeReference($type->getName(), new ValueProvider($parameter->getDefaultValue()))
+                : new TypeReference($type->getName());
         }
 
         if ($parameter->isOptional()) {
-            return new Value($parameter->getDefaultValue());
+            return new ValueProvider($parameter->getDefaultValue());
         }
 
         if ($type instanceof \ReflectionUnionType) {
-            throw new InjectionException('Cannot choose between multiple types for parameter');
+            throw new InjectionException('Failed to determine argument #' . $index . ' ($' . $parameter->getName() . '), because union types cannot be automatically be resolved');
         }
 
-        return new Unknown($index, $executable);
+        throw new InjectionException('Failed to determine argument #' . $index . ' ($' . $parameter->getName() . '), because no definition matches');
     }
 }

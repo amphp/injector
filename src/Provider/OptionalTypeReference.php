@@ -5,7 +5,7 @@ namespace Amp\Injector\Provider;
 use Amp\Injector\Context;
 use Amp\Injector\Provider;
 
-final class OptionalType implements Provider
+final class OptionalTypeReference implements Provider
 {
     private string $type;
     private Provider $default;

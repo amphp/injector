@@ -6,7 +6,8 @@ use Amp\Injector\Internal\CachingReflector;
 use Amp\Injector\Internal\Reflector;
 use Amp\Injector\Internal\StandardReflector;
 use Amp\Injector\Provider\ObjectProvider;
-use Amp\Injector\Provider\Singleton;
+use Amp\Injector\Provider\SingletonProvider;
+use Amp\Injector\Provider\ValueProvider;
 
 function arguments(): Arguments
 {
@@ -19,9 +20,9 @@ function arguments(): Arguments
     return $arguments;
 }
 
-function singleton(Provider $provider): Singleton
+function singleton(Provider $provider): SingletonProvider
 {
-    return new Singleton($provider);
+    return new SingletonProvider($provider);
 }
 
 /**
@@ -32,19 +33,13 @@ function autowire(string $class, ?Arguments $arguments = null): ObjectProvider
     static $factory = null;
 
     if (!$factory) {
-        $factory = new AutowireFactory(getDefaultReflector());
+        $factory = new AutowireFactory;
     }
 
     return $factory->create($class, $arguments ?? arguments());
 }
 
-function getDefaultReflector(): Reflector
+function value(mixed $value): ValueProvider
 {
-    static $reflector = null;
-
-    if (!$reflector) {
-        $reflector = new CachingReflector(new StandardReflector);
-    }
-
-    return $reflector;
+    return new ValueProvider($value);
 }

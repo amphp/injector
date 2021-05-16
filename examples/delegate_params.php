@@ -1,7 +1,7 @@
 <?php
 
 use Amp\Injector\ContextBuilder;
-use Amp\Injector\Provider\Dynamic;
+use Amp\Injector\Provider\DynamicProvider;
 use function Amp\Injector\arguments;
 use function Amp\Injector\autowire;
 
@@ -30,11 +30,11 @@ class A
 }
 
 $contextFactory = new ContextBuilder;
-$contextFactory->add('a', autowire(A::class, arguments()->name('a', new Dynamic(function () {
+$contextFactory->add('a', autowire(A::class, arguments()->name('a', new DynamicProvider(function () {
     $std = new stdClass;
     $std->foo = "foo";
     return $std;
-}))->name('b', new Dynamic(function () {
+}))->name('b', new DynamicProvider(function () {
     $std = new stdClass;
     $std->foo = "bar";
     return $std;
