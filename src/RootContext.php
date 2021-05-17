@@ -3,7 +3,7 @@
 namespace Amp\Injector;
 
 use Amp\Injector\ImplementationResolver\NullImplementationResolver;
-use Kelunik\FiberLocal\FiberLocal;
+use Amp\Injector\Internal\FiberLocalStack;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 
@@ -14,12 +14,12 @@ final class RootContext implements Context
     /** @var Provider[] */
     private array $providers = [];
 
-    private FiberLocal $dependents;
+    private FiberLocalStack $dependents;
 
     public function __construct()
     {
         $this->implementationResolver = new NullImplementationResolver;
-        $this->dependents = FiberLocal::withInitial(static fn() => []);
+        $this->dependents = new FiberLocalStack;
     }
 
     /**
@@ -42,17 +42,12 @@ final class RootContext implements Context
             throw new NotFoundException('Unknown identifier: ' . $id);
         }
 
-        $dependents = $this->dependents->get();
-        $dependents[] = $id;
-
-        $this->dependents->set($dependents);
+        $this->dependents->push($id);
 
         try {
             return $this->providers[$id]->get($this);
         } finally {
-            unset($dependents[array_key_last($dependents)]);
-
-            $this->dependents->set($dependents);
+            $this->dependents->pop();
         }
     }
 
@@ -98,7 +93,7 @@ final class RootContext implements Context
 
     public function getDependents(): array
     {
-        $dependents = $this->dependents->get();
+        $dependents = $this->dependents->toArray();
         if ($dependents) {
             unset($dependents[array_key_last($dependents)]);
         }
