@@ -3,6 +3,7 @@
 namespace Amp\Injector;
 
 use Amp\Injector\ImplementationResolver\NullImplementationResolver;
+use Kelunik\FiberLocal\FiberLocal;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 
@@ -13,9 +14,12 @@ final class RootContext implements Context
     /** @var Provider[] */
     private array $providers = [];
 
+    private FiberLocal $dependents;
+
     public function __construct()
     {
         $this->implementationResolver = new NullImplementationResolver;
+        $this->dependents = FiberLocal::withInitial(static fn() => []);
     }
 
     /**
@@ -34,11 +38,22 @@ final class RootContext implements Context
 
     public function get(string $id): mixed
     {
-        if (isset($this->providers[$id])) {
-            return $this->providers[$id]->get($this);
+        if (!isset($this->providers[$id])) {
+            throw new NotFoundException('Unknown identifier: ' . $id);
         }
 
-        throw new NotFoundException('Unknown identifier: ' . $id);
+        $dependents = $this->dependents->get();
+        $dependents[] = $id;
+
+        $this->dependents->set($dependents);
+
+        try {
+            return $this->providers[$id]->get($this);
+        } finally {
+            unset($dependents[array_key_last($dependents)]);
+
+            $this->dependents->set($dependents);
+        }
     }
 
     public function hasType(string $class): bool
@@ -79,6 +94,16 @@ final class RootContext implements Context
         }
 
         throw new NotFoundException('Unknown identifier: ' . $id);
+    }
+
+    public function getDependents(): array
+    {
+        $dependents = $this->dependents->get();
+        if ($dependents) {
+            unset($dependents[array_key_last($dependents)]);
+        }
+
+        return $dependents;
     }
 
     /**

@@ -31,4 +31,6 @@ interface Context extends ContainerInterface
     public function getProvider(string $id): Provider;
 
     public function getTypeProvider(string $class): Provider;
+
+    public function getDependents(): array;
 }
