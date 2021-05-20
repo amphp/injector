@@ -2,7 +2,7 @@
 
 namespace Amp\Injector;
 
-interface LifecycleListener
+interface ProviderLifecycle
 {
     public function start(Context $context): void;
 

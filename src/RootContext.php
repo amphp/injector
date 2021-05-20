@@ -7,14 +7,25 @@ use Amp\Injector\Internal\FiberLocalStack;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 
-final class RootContext implements Context
+final class RootContext implements ApplicationContext
 {
+    private const STATUS_NONE = 0;
+    private const STATUS_STARTING = 1;
+    private const STATUS_RUNNING = 2;
+    private const STATUS_STOPPING = 3;
+    private const STATUS_STOPPED = 4;
+
     private ImplementationResolver $implementationResolver;
 
     /** @var Provider[] */
     private array $providers = [];
 
     private FiberLocalStack $dependents;
+
+    private int $status = self::STATUS_NONE;
+
+    /** @var ProviderLifecycle[] */
+    private array $lifecycleProviders = [];
 
     public function __construct()
     {
@@ -66,6 +77,11 @@ final class RootContext implements Context
         return isset($this->providers[$id]);
     }
 
+    public function getIds(): array
+    {
+        return \array_map('strval', \array_keys($this->providers));
+    }
+
     /**
      * @throws NotFoundException
      */
@@ -103,9 +119,14 @@ final class RootContext implements Context
 
     /**
      * @throws InjectionException
+     * @throws LifecycleException
      */
     public function with(string $id, Provider $provider): self
     {
+        if ($this->status !== self::STATUS_NONE) {
+            throw new LifecycleException('Context already started');
+        }
+
         if ($this->has($id)) {
             throw new InjectionException('Identifier conflict: ' . $id);
         }
@@ -116,11 +137,79 @@ final class RootContext implements Context
         return $clone;
     }
 
+    /**
+     * @throws LifecycleException
+     */
     public function withImplementationResolver(ImplementationResolver $implementationResolver): self
     {
+        if ($this->status !== self::STATUS_NONE) {
+            throw new LifecycleException('Context already started');
+        }
+
         $clone = clone $this;
         $clone->implementationResolver = $implementationResolver;
 
         return $clone;
+    }
+
+    public function start(): void
+    {
+        if ($this->status !== self::STATUS_NONE) {
+            throw new LifecycleException('Context has already been started');
+        }
+
+        $this->status = self::STATUS_STARTING;
+
+        try {
+            foreach ($this->providers as $provider) {
+                $this->startProvider($provider);
+            }
+        } catch (\Throwable $e) {
+            try {
+                $this->stop();
+            } finally {
+                // TODO: Wrap exception?
+                throw $e;
+            }
+        }
+
+        $this->status = self::STATUS_RUNNING;
+    }
+
+    private function startProvider(Provider $provider): void
+    {
+        foreach ($provider->getDependencies($this) as $dependency) {
+            $this->startProvider($dependency);
+        }
+
+        if ($provider instanceof ProviderLifecycle) {
+            $providerId = \spl_object_id($provider);
+
+            if (!isset($this->lifecycleProviders[$providerId])) {
+                $this->lifecycleProviders[$providerId] = $provider;
+                $provider->start($this);
+            }
+        }
+    }
+
+    public function stop(): void
+    {
+        // TODO: Protect against stop() being called form outside if starting
+        if ($this->status !== self::STATUS_STARTING && !$this->isRunning()) {
+            throw new LifecycleException('Context is not running');
+        }
+
+        $this->status = self::STATUS_STOPPING;
+
+        foreach (\array_reverse($this->lifecycleProviders) as $provider) {
+            $provider->stop($this);
+        }
+
+        $this->status = self::STATUS_STOPPED;
+    }
+
+    public function isRunning(): bool
+    {
+        return $this->status === self::STATUS_RUNNING;
     }
 }

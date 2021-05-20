@@ -28,6 +28,8 @@ interface Context extends ContainerInterface
 
     public function has(string $id): bool;
 
+    public function getIds(): array;
+
     public function getProvider(string $id): Provider;
 
     public function getTypeProvider(string $class): Provider;

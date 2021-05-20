@@ -3,10 +3,10 @@
 namespace Amp\Injector\Provider;
 
 use Amp\Injector\Context;
-use Amp\Injector\LifecycleListener;
 use Amp\Injector\Provider;
+use Amp\Injector\ProviderLifecycle;
 
-final class SingletonProvider implements Provider, LifecycleListener
+final class SingletonProvider implements Provider, ProviderLifecycle
 {
     private Provider $provider;
 
@@ -38,6 +38,7 @@ final class SingletonProvider implements Provider, LifecycleListener
 
     public function get(Context $context): mixed
     {
+        // TODO: Locking?
         if (!$this->started) {
             $this->value = $this->provider->get($context);
             $this->started = true;
