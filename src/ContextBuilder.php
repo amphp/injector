@@ -5,7 +5,6 @@ namespace Amp\Injector;
 use Amp\Injector\ImplementationResolver\AutomaticImplementationResolver;
 use Amp\Injector\ImplementationResolver\NullImplementationResolver;
 use Amp\Injector\ImplementationResolver\PrimaryImplementationResolver;
-use function Amp\Injector\Internal\getDefaultReflector;
 
 final class ContextBuilder
 {
@@ -39,8 +38,10 @@ final class ContextBuilder
         $this->primaryImplementationResolver = $this->primaryImplementationResolver->with($class, $id);
     }
 
-    public function build(): Context
+    public function build(): ApplicationContext
     {
-        return $this->context->withImplementationResolver($this->primaryImplementationResolver->withFallback($this->automaticImplementationResolver));
+        $implementationResolver = $this->primaryImplementationResolver->withFallback($this->automaticImplementationResolver);
+
+        return $this->context->withImplementationResolver($implementationResolver);
     }
 }

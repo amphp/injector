@@ -9,10 +9,12 @@ use function Amp\Injector\Internal\getDefaultReflector;
 final class AutowireFactory
 {
     private Reflector $reflector;
+    private ArgumentResolver $argumentResolver;
 
     public function __construct()
     {
         $this->reflector = getDefaultReflector();
+        $this->argumentResolver = new ReflectingArgumentResolver;
     }
 
     /**
@@ -40,7 +42,8 @@ final class AutowireFactory
         }
 
         if ($this->reflector->getConstructorParameters($class)) {
-            return new ObjectProvider($class, $arguments->resolve(new Executable($constructor)));
+            $args = $this->argumentResolver->resolve(new Executable($constructor), $arguments);
+            return new ObjectProvider($class, $args);
         }
 
         return new ObjectProvider($class, []);

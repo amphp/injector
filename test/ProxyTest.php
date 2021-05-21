@@ -67,6 +67,8 @@ class ProxyTest extends TestCase
         $contextBuilder = new ContextBuilder;
         $contextBuilder->add('test', singleton(self::proxy(autowire(TestDependency::class))));
         $context = $contextBuilder->build();
+        $context->instantiate();
+        $context->start();
 
         $object1 = $context->getType(TestDependency::class);
         $object2 = $context->getType(TestDependency::class);

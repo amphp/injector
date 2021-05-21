@@ -10,6 +10,7 @@ use PHPUnit\Framework\TestCase;
 class RootContextTest extends TestCase
 {
     private ContextBuilder $builder;
+    private ApplicationContext $context;
 
     public function testMakeInstanceInjectsSimpleConcreteDependency(): void
     {
@@ -26,9 +27,14 @@ class RootContextTest extends TestCase
 
     private function whenGetType(string $class): object
     {
-        $context = $this->builder->build();
+        if (!isset($this->context)) {
+            $this->context = $this->builder->build();
 
-        return $context->getType($class);
+            $this->context->instantiate();
+            $this->context->start();
+        }
+
+        return $this->context->getType($class);
     }
 
     public function testMakeInstanceReturnsNewInstanceIfClassHasNoConstructor(): void
@@ -913,5 +919,6 @@ class RootContextTest extends TestCase
     protected function setUp(): void
     {
         $this->builder = new ContextBuilder;
+        unset($this->context);
     }
 }
