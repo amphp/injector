@@ -27,14 +27,19 @@ class LoggingProvider implements Provider, ProviderLifecycle
         return array_map(fn($id) => $context->getProvider($id), $this->dependencies);
     }
 
+    public function instantiate(Context $context): void
+    {
+        print '0:' . $this->id . ' ';
+    }
+
     public function start(Context $context): void
     {
-        print 'start:' . $this->id . ' ';
+        print '1:' . $this->id . ' ';
     }
 
     public function stop(Context $context): void
     {
-        print 'stop:' . $this->id . ' ';
+        print '2:' . $this->id . ' ';
     }
 }
 
@@ -50,7 +55,7 @@ class LifecycleTest extends TestCase
             'c' => [],
         ]);
 
-        $this->expectOutputString('start:c start:b start:a ready stop:a stop:b stop:c ');
+        $this->expectOutputString('0:c 0:b 0:a 1:c 1:b 1:a ready 2:a 2:b 2:c ');
 
         $this->executeLifecycle();
     }
@@ -65,9 +70,23 @@ class LifecycleTest extends TestCase
     private function executeLifecycle()
     {
         $context = $this->contextBuilder->build();
+        $context->instantiate();
         $context->start();
         print 'ready ';
         $context->stop();
+    }
+
+    public function testCircular()
+    {
+        $this->contextBuilder->add('a', singleton(new LoggingProvider('a', ['b'])));
+        $this->contextBuilder->add('b', singleton(new LoggingProvider('b', []))->onStart(function ($b, $context) {
+            print 'b+ ';
+            $context->get('a');
+        }));
+
+        $this->expectOutputString('0:b b 0:a a 1:b b+ 1:a ready 2:a 2:b ');
+
+        $this->executeLifecycle();
     }
 
     public function testOutOfOrder()
@@ -79,7 +98,7 @@ class LifecycleTest extends TestCase
             'd' => ['a'],
         ]);
 
-        $this->expectOutputString('start:c start:b start:a start:d ready stop:d stop:a stop:b stop:c ');
+        $this->expectOutputString('0:c 0:b 0:a 0:d 1:c 1:b 1:a 1:d ready 2:d 2:a 2:b 2:c ');
 
         $this->executeLifecycle();
     }

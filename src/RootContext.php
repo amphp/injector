@@ -10,10 +10,12 @@ use Psr\Container\NotFoundExceptionInterface;
 final class RootContext implements ApplicationContext
 {
     private const STATUS_NONE = 0;
-    private const STATUS_STARTING = 1;
-    private const STATUS_RUNNING = 2;
-    private const STATUS_STOPPING = 3;
-    private const STATUS_STOPPED = 4;
+    private const STATUS_INSTANTIATING = 1;
+    private const STATUS_INSTANTIATED = 2;
+    private const STATUS_STARTING = 3;
+    private const STATUS_RUNNING = 4;
+    private const STATUS_STOPPING = 5;
+    private const STATUS_STOPPED = 6;
 
     private ImplementationResolver $implementationResolver;
 
@@ -152,17 +154,17 @@ final class RootContext implements ApplicationContext
         return $clone;
     }
 
-    public function start(): void
+    public function instantiate(): void
     {
         if ($this->status !== self::STATUS_NONE) {
-            throw new LifecycleException('Context has already been started');
+            throw new LifecycleException('Invalid operation for context status');
         }
 
-        $this->status = self::STATUS_STARTING;
+        $this->status = self::STATUS_INSTANTIATING;
 
         try {
             foreach ($this->providers as $provider) {
-                $this->startProvider($provider);
+                $this->instantiateProvider($provider);
             }
         } catch (\Throwable $e) {
             try {
@@ -173,13 +175,13 @@ final class RootContext implements ApplicationContext
             }
         }
 
-        $this->status = self::STATUS_RUNNING;
+        $this->status = self::STATUS_INSTANTIATED;
     }
 
-    private function startProvider(Provider $provider): void
+    private function instantiateProvider(Provider $provider): void
     {
         foreach ($provider->getDependencies($this) as $dependency) {
-            $this->startProvider($dependency);
+            $this->instantiateProvider($dependency);
         }
 
         if ($provider instanceof ProviderLifecycle) {
@@ -187,7 +189,7 @@ final class RootContext implements ApplicationContext
 
             if (!isset($this->lifecycleProviders[$providerId])) {
                 $this->lifecycleProviders[$providerId] = $provider;
-                $provider->start($this);
+                $provider->instantiate($this);
             }
         }
     }
@@ -196,7 +198,7 @@ final class RootContext implements ApplicationContext
     {
         // TODO: Protect against stop() being called form outside if starting
         if ($this->status !== self::STATUS_STARTING && !$this->isRunning()) {
-            throw new LifecycleException('Context is not running');
+            throw new LifecycleException('Invalid operation for context status');
         }
 
         $this->status = self::STATUS_STOPPING;
@@ -211,5 +213,20 @@ final class RootContext implements ApplicationContext
     public function isRunning(): bool
     {
         return $this->status === self::STATUS_RUNNING;
+    }
+
+    public function start(): void
+    {
+        if ($this->status !== self::STATUS_INSTANTIATED) {
+            throw new LifecycleException('Invalid operation for context status');
+        }
+
+        $this->status = self::STATUS_STARTING;
+
+        foreach ($this->lifecycleProviders as $provider) {
+            $provider->start($this);
+        }
+
+        $this->status = self::STATUS_RUNNING;
     }
 }
