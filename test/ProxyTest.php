@@ -2,92 +2,89 @@
 
 namespace Amp\Injector;
 
-use Amp\Injector\Meta\Parameter;
-use Amp\Injector\Provider\FactoryProvider;
+use Amp\Injector\Meta\Type;
 use PHPUnit\Framework\TestCase;
 use ProxyManager\Factory\LazyLoadingValueHolderFactory;
 use ProxyManager\Proxy\LazyLoadingInterface;
 
 class ProxyTest extends TestCase
 {
-    private static function proxy(FactoryProvider $provider): Provider
+    public function testInstanceReturnedFromProxy(): void
     {
-        return new class($provider) implements Provider {
-            public function __construct(private FactoryProvider $provider)
+        $definitions = (new Definitions)->with(self::proxy(TestDependency::class, object(TestDependency::class)));
+
+        $object = factory(fn (TestDependency $instance) => $instance)->build(new Injector($definitions, automaticTypes($definitions)))->get(new ProviderContext);
+
+        self::assertInstanceOf(TestDependency::class, $object);
+        self::assertInstanceOf(LazyLoadingInterface::class, $object);
+        self::assertSame('testVal', $object->testProp);
+    }
+
+    private static function proxy(string $class, Definition $definition): Definition
+    {
+        return new class($class, $definition) implements Definition {
+            public function __construct(private string $class, private Definition $definition)
             {
             }
 
-            public function has(Container $context, Parameter $parameter): bool
+            public function getType(): Type
             {
-                return true;
+                return new Type($this->class);
             }
 
-            public function get(ProviderContext $context): object
+            public function getAttribute(string $attribute): ?object
             {
-                return (new LazyLoadingValueHolderFactory)->createProxy(
-                    $this->provider->getType(),// TODO type
-                    function (&$object, $proxy, $method, $parameters, &$initializer) use ($context, $parameter) {
-                        $object = $this->provider->get($parameter);
+                return $this->definition->getAttribute($attribute);
+            }
+
+            public function build(Injector $injector): Provider
+            {
+                $factory = new LazyLoadingValueHolderFactory;
+
+                return factory(fn (ProviderContext $context) => $factory->createProxy(
+                    $this->class,
+                    function (&$object, $proxy, $method, $parameters, &$initializer) use ($injector, $context) {
+                        $object = $this->definition->build($injector)->get($context);
                         $initializer = null;
                     }
-                );
-            }
-
-            public function unwrap(): ?Provider
-            {
-                return $this->provider;
-            }
-
-            public function getDependencies(): array
-            {
-                return [$this->provider];
+                ))->build($injector);
             }
         };
     }
 
-    public function testInstanceReturnedFromProxy(): void
-    {
-        $contextBuilder = new Definitions;
-        $contextBuilder->add(self::proxy(object(TestDependency::class)), 'test');
-
-        $class = $contextBuilder->build()->getType(TestDependency::class);
-
-        self::assertInstanceOf(TestDependency::class, $class);
-        self::assertInstanceOf(LazyLoadingInterface::class, $class);
-        self::assertSame('testVal', $class->testProp);
-    }
-
     public function testMakeInstanceInjectsSimpleConcreteDependencyProxy(): void
     {
-        $contextBuilder = new Definitions;
-        $contextBuilder->add(self::proxy(object(TestDependency::class)), 'test');
-        $contextBuilder->add(object(TestNeedsDep::class), 'parent');
+        $definitions = (new Definitions)
+            ->with(self::proxy(TestDependency::class, object(TestDependency::class)))
+            ->with(object(TestNeedsDep::class));
 
-        $needDep = $contextBuilder->build()->getType(TestNeedsDep::class);
+        $needDep = factory(fn (TestNeedsDep $instance) => $instance)->build(new Injector($definitions, automaticTypes($definitions)))->get(new ProviderContext);
 
         self::assertInstanceOf(TestNeedsDep::class, $needDep);
     }
 
-    public function testShareInstanceProxy(): void
+    public function testSingletonInstanceProxy(): void
     {
-        $contextBuilder = new Definitions;
-        $contextBuilder->add(singleton(self::proxy(object(TestDependency::class))), 'test');
-        $context = $contextBuilder->build();
-        $context->start();
+        $definitions = (new Definitions)
+            ->with(singleton(self::proxy(TestDependency::class, object(TestDependency::class))));
 
-        $object1 = $context->getType(TestDependency::class);
-        $object2 = $context->getType(TestDependency::class);
+        $injector = new Injector($definitions, automaticTypes($definitions));
+
+        $object1 = factory(fn (TestDependency $instance) => $instance)->build($injector)->get(new ProviderContext);
+        $object2 = factory(fn (TestDependency $instance) => $instance)->build($injector)->get(new ProviderContext);
 
         self::assertSame($object1, $object2);
     }
 
     public function testProxyDefinition(): void
     {
-        $contextBuilder = new Definitions;
-        $contextBuilder->add(self::proxy(object(NoTypehintNoDefaultConstructorClass::class, arguments()->name('arg', value(42)))), 'test');
-        $contextBuilder->add(object(TestDependency::class), 'dependency');
+        $definitions = (new Definitions)
+            ->with(self::proxy(NoTypehintNoDefaultConstructorClass::class, object(NoTypehintNoDefaultConstructorClass::class, arguments()->with(names()->with('arg', value(42))))))
+            ->with(object(TestDependency::class));
 
-        $object = $contextBuilder->build()->getType(NoTypehintNoDefaultConstructorClass::class);
+        $injector = new Injector($definitions, automaticTypes($definitions));
+
+        $object = factory(fn (NoTypehintNoDefaultConstructorClass $instance) => $instance)->build($injector)->get(new ProviderContext);
 
         self::assertSame(42, $object->testParam);
     }

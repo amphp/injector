@@ -6,9 +6,11 @@ use Amp\Injector\Definitions;
 use Amp\Injector\Injector;
 use Amp\Injector\Meta\Type;
 use Amp\Injector\Provider;
+use Amp\Injector\ProviderContext;
 use ProxyManager\Factory\LazyLoadingValueHolderFactory;
-use function Amp\Injector\any;
 use function Amp\Injector\arguments;
+use function Amp\Injector\automaticTypes;
+use function Amp\Injector\factory;
 use function Amp\Injector\names;
 use function Amp\Injector\object;
 use function Amp\Injector\value;
@@ -60,16 +62,16 @@ class Car
     }
 }
 
-function proxy(Definition $provider): Definition
+function proxy(string $class, Definition $definition): Definition
 {
-    return new class($provider) implements Definition {
-        public function __construct(private Definition $definition)
+    return new class($class, $definition) implements Definition {
+        public function __construct(private string $class, private Definition $definition)
         {
         }
 
-        public function getType(): ?Type
+        public function getType(): Type
         {
-            return $this->definition->getType();
+            return new Type($this->class);
         }
 
         public function getAttribute(string $attribute): ?object
@@ -79,20 +81,22 @@ function proxy(Definition $provider): Definition
 
         public function build(Injector $injector): Provider
         {
-            return (new LazyLoadingValueHolderFactory)->createProxy(
-                $this->definition->getType(),
-                function (&$object, $proxy, $method, $parameters, &$initializer) {
-                    $object = $this->definition->get();
+            $factory = new LazyLoadingValueHolderFactory;
+
+            return factory(fn (ProviderContext $context) => $factory->createProxy(
+                $this->class,
+                function (&$object, $proxy, $method, $parameters, &$initializer) use ($injector, $context) {
+                    $object = $this->definition->build($injector)->get($context);
                     $initializer = null;
                 }
-            );
+            ))->build($injector);
         }
     };
 }
 
 $definitions = (new Definitions)
-    ->with(proxy(object(Car::class)), 'car')
-    ->with(proxy(object(V8::class, arguments()->with(names()->with('arg', value('some text'))))), 'engine');
+    ->with(proxy(Car::class, object(Car::class)), 'car')
+    ->with(proxy(V8::class, object(V8::class, arguments()->with(names()->with('arg', value('some text'))))), 'engine');
 
 // TODO: Replacement for prepare?
 // $contextBuilder->prepare(V8::class, function (V8 $v8, Amp\Injector\Injector $injector) {
@@ -101,7 +105,7 @@ $definitions = (new Definitions)
 
 print 'Configuration complete.' . PHP_EOL;
 
-$application = new Application(new Injector($definitions, any()));
+$application = new Application(new Injector($definitions, automaticTypes($definitions)));
 
 $car = $application->getContainer()->get('car');
 
