@@ -2,18 +2,13 @@
 
 namespace Amp\Injector;
 
-use Amp\Injector\Meta\Parameter;
+use Amp\Injector\Definition\ProviderDefinition;
 use PHPUnit\Framework\TestCase;
 
 class LoggingProvider implements Provider, Lifecycle
 {
     public function __construct(private string $id, private array $dependencies)
     {
-    }
-
-    public function has(Container $context, Parameter $parameter): bool
-    {
-        return true;
     }
 
     public function unwrap(): ?Provider
@@ -23,11 +18,13 @@ class LoggingProvider implements Provider, Lifecycle
 
     public function getDependencies(): array
     {
-        return \array_map(fn ($id) => $context->getProvider($id), $this->dependencies);
+        return $this->dependencies;
     }
 
     public function start(): void
     {
+        print 'start:' . $this->id . ' ';
+
         $this->get(new ProviderContext);
     }
 
@@ -40,71 +37,55 @@ class LoggingProvider implements Provider, Lifecycle
 
     public function stop(): void
     {
-        print '2:' . $this->id . ' ';
+        print 'stop:' . $this->id . ' ';
     }
 }
 
 class LifecycleTest extends TestCase
 {
-    private Definitions $contextBuilder;
-
     public function testSimple()
     {
-        $this->givenDependencies([
-            'a' => ['b', 'c'],
-            'b' => ['c'],
-            'c' => [],
-        ]);
+        $c = new LoggingProvider('c', []);
+        $b = new LoggingProvider('b', [$c]);
+        $a = new LoggingProvider('a', [$b, $c]);
 
-        $this->expectOutputString('c b a 1:c 1:b 1:a ready 2:a 2:b 2:c ');
+        $definitions = (new Definitions)
+            ->with(new ProviderDefinition($a))
+            ->with(new ProviderDefinition($b))
+            ->with(new ProviderDefinition($c));
 
-        $this->executeLifecycle();
+        $injector = new Injector($definitions, any());
+
+        $this->expectOutputString('start:c c start:b b start:a a ready stop:a stop:b stop:c ');
+
+        $this->executeLifecycle($injector);
     }
 
-    private function givenDependencies(array $dependencies)
+    private function executeLifecycle(Injector $injector)
     {
-        foreach ($dependencies as $id => $dependency) {
-            $this->contextBuilder->add(new LoggingProvider($id, $dependency), $id);
-        }
-    }
-
-    private function executeLifecycle()
-    {
-        $context = $this->contextBuilder->build();
-        $context->start();
+        $application = new Application($injector);
+        $application->start();
         print 'ready ';
-        $context->stop();
-    }
-
-    public function testCircular()
-    {
-        $this->contextBuilder->add(singleton(new LoggingProvider('a', ['b'])), 'a');
-        $this->contextBuilder->add(singleton(new LoggingProvider('b', []))->onStart(function ($b, $context) {
-            print 'b+ ';
-            $context->get('a');
-        }), 'b');
-
-        $this->expectOutputString('0:b b 0:a a 1:b b+ 1:a ready 2:a 2:b ');
-
-        $this->executeLifecycle();
+        $application->stop();
     }
 
     public function testOutOfOrder()
     {
-        $this->givenDependencies([
-            'b' => ['c'],
-            'a' => ['b', 'c'],
-            'c' => [],
-            'd' => ['a'],
-        ]);
+        $c = new LoggingProvider('c', []);
+        $b = new LoggingProvider('b', [$c]);
+        $a = new LoggingProvider('a', [$b, $c]);
+        $d = new LoggingProvider('d', [$a]);
 
-        $this->expectOutputString('0:c 0:b 0:a 0:d 1:c 1:b 1:a 1:d ready 2:d 2:a 2:b 2:c ');
+        $definitions = (new Definitions)
+            ->with(new ProviderDefinition($a))
+            ->with(new ProviderDefinition($b))
+            ->with(new ProviderDefinition($c))
+            ->with(new ProviderDefinition($d));
 
-        $this->executeLifecycle();
-    }
+        $injector = new Injector($definitions, any());
 
-    protected function setUp(): void
-    {
-        $this->contextBuilder = new Definitions;
+        $this->expectOutputString('start:c c start:b b start:a a start:d d ready stop:d stop:a stop:b stop:c ');
+
+        $this->executeLifecycle($injector);
     }
 }
