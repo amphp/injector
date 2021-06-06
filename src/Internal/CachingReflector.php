@@ -13,6 +13,7 @@ final class CachingReflector implements Reflector
     private array $methods = [];
     private array $functions = [];
     private array $parameters = [];
+    private array $parents = [];
 
     public function __construct(?Reflector $reflector = null)
     {
@@ -74,5 +75,10 @@ final class CachingReflector implements Reflector
         $key = normalizeClass($className) . '::' . \strtolower($methodName);
 
         return $this->methods[$key] ??= $this->reflector->getMethod($classNameOrInstance, $methodName);
+    }
+
+    public function getParents(string $class): array
+    {
+        return $this->parents[normalizeClass($class)] ??= $this->reflector->getParents($class);
     }
 }

@@ -2,37 +2,43 @@
 
 namespace Amp\Injector;
 
-use Amp\Injector\Provider\ObjectProvider;
+use Amp\Injector\Meta\Parameter;
+use Amp\Injector\Provider\FactoryProvider;
 use PHPUnit\Framework\TestCase;
 use ProxyManager\Factory\LazyLoadingValueHolderFactory;
 use ProxyManager\Proxy\LazyLoadingInterface;
 
 class ProxyTest extends TestCase
 {
-    private static function proxy(ObjectProvider $provider): Provider
+    private static function proxy(FactoryProvider $provider): Provider
     {
-        return new class ($provider) implements Provider {
-            public function __construct(private ObjectProvider $provider)
+        return new class($provider) implements Provider {
+            public function __construct(private FactoryProvider $provider)
             {
             }
 
-            public function get(Context $context): object
+            public function has(Container $context, Parameter $parameter): bool
+            {
+                return true;
+            }
+
+            public function get(ProviderContext $context): object
             {
                 return (new LazyLoadingValueHolderFactory)->createProxy(
-                    $this->provider->getType(),
-                    function (&$object, $proxy, $method, $parameters, &$initializer) use ($context) {
-                        $object = $this->provider->get($context);
+                    $this->provider->getType(),// TODO type
+                    function (&$object, $proxy, $method, $parameters, &$initializer) use ($context, $parameter) {
+                        $object = $this->provider->get($parameter);
                         $initializer = null;
                     }
                 );
             }
 
-            public function getType(): ?string
+            public function unwrap(): ?Provider
             {
-                return $this->provider->getType();
+                return $this->provider;
             }
 
-            public function getDependencies(Context $context): array
+            public function getDependencies(): array
             {
                 return [$this->provider];
             }
@@ -41,8 +47,8 @@ class ProxyTest extends TestCase
 
     public function testInstanceReturnedFromProxy(): void
     {
-        $contextBuilder = new ContextBuilder;
-        $contextBuilder->add('test', self::proxy(autowire(TestDependency::class)));
+        $contextBuilder = new Definitions;
+        $contextBuilder->add(self::proxy(object(TestDependency::class)), 'test');
 
         $class = $contextBuilder->build()->getType(TestDependency::class);
 
@@ -53,9 +59,9 @@ class ProxyTest extends TestCase
 
     public function testMakeInstanceInjectsSimpleConcreteDependencyProxy(): void
     {
-        $contextBuilder = new ContextBuilder;
-        $contextBuilder->add('test', self::proxy(autowire(TestDependency::class)));
-        $contextBuilder->add('parent', autowire(TestNeedsDep::class));
+        $contextBuilder = new Definitions;
+        $contextBuilder->add(self::proxy(object(TestDependency::class)), 'test');
+        $contextBuilder->add(object(TestNeedsDep::class), 'parent');
 
         $needDep = $contextBuilder->build()->getType(TestNeedsDep::class);
 
@@ -64,10 +70,9 @@ class ProxyTest extends TestCase
 
     public function testShareInstanceProxy(): void
     {
-        $contextBuilder = new ContextBuilder;
-        $contextBuilder->add('test', singleton(self::proxy(autowire(TestDependency::class))));
+        $contextBuilder = new Definitions;
+        $contextBuilder->add(singleton(self::proxy(object(TestDependency::class))), 'test');
         $context = $contextBuilder->build();
-        $context->instantiate();
         $context->start();
 
         $object1 = $context->getType(TestDependency::class);
@@ -78,9 +83,9 @@ class ProxyTest extends TestCase
 
     public function testProxyDefinition(): void
     {
-        $contextBuilder = new ContextBuilder;
-        $contextBuilder->add('test', self::proxy(autowire(NoTypehintNoDefaultConstructorClass::class, arguments()->name('arg', value(42)))));
-        $contextBuilder->add('dependency', autowire(TestDependency::class));
+        $contextBuilder = new Definitions;
+        $contextBuilder->add(self::proxy(object(NoTypehintNoDefaultConstructorClass::class, arguments()->name('arg', value(42)))), 'test');
+        $contextBuilder->add(object(TestDependency::class), 'dependency');
 
         $object = $contextBuilder->build()->getType(NoTypehintNoDefaultConstructorClass::class);
 

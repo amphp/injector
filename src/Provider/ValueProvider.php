@@ -2,8 +2,8 @@
 
 namespace Amp\Injector\Provider;
 
-use Amp\Injector\Context;
 use Amp\Injector\Provider;
+use Amp\Injector\ProviderContext;
 
 final class ValueProvider implements Provider
 {
@@ -14,22 +14,18 @@ final class ValueProvider implements Provider
         $this->value = $value;
     }
 
-    public function get(Context $context): mixed
+    public function get(ProviderContext $context): mixed
     {
         return $this->value;
     }
 
-    public function getDependencies(Context $context): array
+    public function getDependencies(): array
     {
         return [];
     }
 
-    public function getType(): ?string
+    public function unwrap(): ?Provider
     {
-        if (\is_object($this->value)) {
-            return \get_class($this->value);
-        }
-
         return null;
     }
 }

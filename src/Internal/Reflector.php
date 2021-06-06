@@ -3,7 +3,7 @@
 namespace Amp\Injector\Internal;
 
 /** @internal */
-interface Reflector
+interface Reflector extends ParentReflector
 {
     /**
      * Retrieves ReflectionClass instances, caching them for future retrieval.
@@ -42,7 +42,7 @@ interface Reflector
      * already have it cached.
      *
      * @param \ReflectionFunctionAbstract $function
-     * @param \ReflectionParameter        $param
+     * @param \ReflectionParameter $param
      *
      * @return string|null
      */

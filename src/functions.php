@@ -2,12 +2,16 @@
 
 namespace Amp\Injector;
 
-use Amp\Injector\Internal\CachingReflector;
-use Amp\Injector\Internal\Reflector;
-use Amp\Injector\Internal\StandardReflector;
-use Amp\Injector\Provider\ObjectProvider;
-use Amp\Injector\Provider\SingletonProvider;
+use Amp\Injector\Definition\FactoryDefinition;
+use Amp\Injector\Definition\ProviderDefinition;
+use Amp\Injector\Definition\SingletonDefinition;
+use Amp\Injector\Meta\Reflection\ReflectionConstructorExecutable;
+use Amp\Injector\Meta\Reflection\ReflectionFunctionExecutable;
 use Amp\Injector\Provider\ValueProvider;
+use Amp\Injector\Weaver\AnyWeaver;
+use Amp\Injector\Weaver\AutomaticTypeWeaver;
+use Amp\Injector\Weaver\NameWeaver;
+use Amp\Injector\Weaver\TypeWeaver;
 
 function arguments(): Arguments
 {
@@ -20,26 +24,49 @@ function arguments(): Arguments
     return $arguments;
 }
 
-function singleton(Provider $provider): SingletonProvider
+function singleton(Definition $definition): SingletonDefinition
 {
-    return new SingletonProvider($provider);
+    return new SingletonDefinition($definition);
 }
 
-/**
- * @throws InjectionException
- */
-function autowire(string $class, ?Arguments $arguments = null): ObjectProvider
+function factory(\Closure $factory, ?Arguments $arguments = null): FactoryDefinition
 {
-    static $factory = null;
+    $executable = new ReflectionFunctionExecutable(new \ReflectionFunction($factory));
+    $arguments ??= arguments();
 
-    if (!$factory) {
-        $factory = new AutowireFactory;
-    }
-
-    return $factory->create($class, $arguments ?? arguments());
+    return new FactoryDefinition($executable, $arguments);
 }
 
-function value(mixed $value): ValueProvider
+function object(string $class, ?Arguments $arguments = null): FactoryDefinition
 {
-    return new ValueProvider($value);
+    $executable = new ReflectionConstructorExecutable($class);
+    $arguments ??= arguments();
+
+    return new FactoryDefinition($executable, $arguments);
+}
+
+function value(mixed $value): Definition
+{
+    // TODO: Expose type?
+    return new ProviderDefinition(new ValueProvider($value));
+}
+
+function automaticTypes(Definitions $definitions): AutomaticTypeWeaver
+{
+    return new AutomaticTypeWeaver($definitions);
+}
+
+function names(): NameWeaver
+{
+    return new NameWeaver;
+}
+
+function types(): TypeWeaver
+{
+    return new TypeWeaver;
+}
+
+function any(Weaver ...$weavers): AnyWeaver
+{
+    return new AnyWeaver(...$weavers);
 }

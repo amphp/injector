@@ -1,21 +1,18 @@
 <?php
 
-namespace Amp\Injector;
+namespace Amp\Injector\Weaver;
 
+use Amp\Injector\Definition;
 use Amp\Injector\Meta\Parameter;
+use Amp\Injector\Weaver;
 
-// TODO Readd index
-final class Arguments implements Weaver
+final class AnyWeaver implements Weaver
 {
-    /** @var Weaver[] */
-    private array $weavers = [];
+    private array $weavers;
 
-    public function with(Weaver $weaver): self
+    public function __construct(Weaver ...$weavers)
     {
-        $clone = clone $this;
-        $clone->weavers[] = $weaver;
-
-        return $clone;
+        $this->weavers = $weavers;
     }
 
     public function getDefinition(Parameter $parameter): ?Definition

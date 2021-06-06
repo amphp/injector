@@ -620,7 +620,7 @@ class TestDelegationDependency
     }
 }
 
-function createTestDelegationSimple()
+function createTestDelegationSimple(): TestDelegationSimple
 {
     $instance = new TestDelegationSimple;
     $instance->delegateCalled = true;
@@ -628,7 +628,7 @@ function createTestDelegationSimple()
     return $instance;
 }
 
-function createTestDelegationDependency(TestDelegationSimple $testDelegationSimple)
+function createTestDelegationDependency(TestDelegationSimple $testDelegationSimple): TestDelegationDependency
 {
     $instance = new TestDelegationDependency($testDelegationSimple);
     $instance->delegateCalled = true;

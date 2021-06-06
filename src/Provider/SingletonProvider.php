@@ -2,12 +2,12 @@
 
 namespace Amp\Injector\Provider;
 
-use Amp\Injector\Context;
 use Amp\Injector\InjectionException;
+use Amp\Injector\Lifecycle;
 use Amp\Injector\Provider;
-use Amp\Injector\ProviderLifecycle;
+use Amp\Injector\ProviderContext;
 
-final class SingletonProvider implements Provider, ProviderLifecycle
+final class SingletonProvider implements Provider, Lifecycle
 {
     private const STATUS_NONE = 0;
     private const STATUS_INITIALIZING = 1;
@@ -57,68 +57,51 @@ final class SingletonProvider implements Provider, ProviderLifecycle
         return $clone;
     }
 
-    public function get(Context $context): mixed
+    public function unwrap(): ?Provider
+    {
+        return $this->provider;
+    }
+
+    public function getDependencies(): array
+    {
+        return [];
+    }
+
+    public function start(): void
+    {
+        if (!$this->lazy) {
+            $this->get(new ProviderContext);
+        }
+    }
+
+    public function get(ProviderContext $context): mixed
     {
         // TODO: Locking?
-        if ($this->lazy && $this->status === self::STATUS_NONE) {
-            $this->status = self::STATUS_STARTING;
-
-            $this->value = $this->provider->get($context);
-
-            foreach ($this->onStart as $callback) {
-                $callback($this->value, $context);
-            }
-
-            $this->status = self::STATUS_STARTED;
-        } else if ($this->status < self::STATUS_INITIALIZED) {
+        if ($this->status === self::STATUS_NONE) {
+            $this->status = self::STATUS_INITIALIZING;
+            $this->value = $this->provider->get(new ProviderContext); // hide context, because singleton
+            $this->status = self::STATUS_INITIALIZED;
+        } elseif ($this->status !== self::STATUS_STARTED) {
             throw new InjectionException('Failed to provide singleton due to lifecycle errors');
-        }
-
-        return $this->value;
-    }
-
-    public function getType(): ?string
-    {
-        return $this->provider->getType();
-    }
-
-    public function getDependencies(Context $context): array
-    {
-        return [$this->provider];
-    }
-
-    public function instantiate(Context $context): void
-    {
-        if ($this->lazy) {
-            return;
-        }
-
-        $this->status = self::STATUS_INITIALIZING;
-        $this->value = $this->provider->get($context);
-        $this->status = self::STATUS_INITIALIZED;
-    }
-
-    public function start(Context $context): void
-    {
-        if ($this->lazy) {
-            return;
         }
 
         $this->status = self::STATUS_STARTING;
 
         foreach ($this->onStart as $callback) {
-            $callback($this->value, $context);
+            $callback($this->value);
         }
 
         $this->status = self::STATUS_STARTED;
+
+        return $this->value;
     }
 
-    public function stop(Context $context): void
+    public function stop(): void
     {
         $this->status = self::STATUS_STOPPING;
 
         foreach ($this->onStop as $callback) {
-            $callback($this->value, $context);
+            $callback($this->value);
         }
 
         $this->status = self::STATUS_STOPPED;

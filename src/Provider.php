@@ -11,16 +11,15 @@ interface Provider
      * @throws NotFoundExceptionInterface
      * @throws ContainerExceptionInterface
      */
-    public function get(Context $context): mixed;
+    public function get(ProviderContext $context): mixed;
 
     /**
-     * @return string|null Class name or null if not available or shouldn't be autowired based on types.
+     * @return Provider|null Unwrap decorated provider, or null if none.
      */
-    public function getType(): ?string;
+    public function unwrap(): ?Provider;
 
     /**
-     * @param Context $context Implementations can assume the context to be complete for making decisions.
      * @return array An array of providers which should be initialized first.
      */
-    public function getDependencies(Context $context): array;
+    public function getDependencies(): array;
 }

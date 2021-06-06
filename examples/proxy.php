@@ -1,12 +1,16 @@
 <?php
 
-use Amp\Injector\Context;
-use Amp\Injector\ContextBuilder;
+use Amp\Injector\Application;
+use Amp\Injector\Definition;
+use Amp\Injector\Definitions;
+use Amp\Injector\Injector;
+use Amp\Injector\Meta\Type;
 use Amp\Injector\Provider;
-use Amp\Injector\Provider\ObjectProvider;
 use ProxyManager\Factory\LazyLoadingValueHolderFactory;
+use function Amp\Injector\any;
 use function Amp\Injector\arguments;
-use function Amp\Injector\autowire;
+use function Amp\Injector\names;
+use function Amp\Injector\object;
 use function Amp\Injector\value;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -18,7 +22,7 @@ interface Engine
 
 class V8 implements Engine
 {
-    public $value = '';
+    public string $value = '';
 
     public function __construct(string $arg)
     {
@@ -56,39 +60,39 @@ class Car
     }
 }
 
-function proxy(ObjectProvider $provider): Provider
+function proxy(Definition $provider): Definition
 {
-    return new class ($provider) implements Provider {
-        public function __construct(private ObjectProvider $provider)
+    return new class($provider) implements Definition {
+        public function __construct(private Definition $definition)
         {
         }
 
-        public function get(Context $context): object
+        public function getType(): ?Type
+        {
+            return $this->definition->getType();
+        }
+
+        public function getAttribute(string $attribute): ?object
+        {
+            return $this->definition->getAttribute($attribute);
+        }
+
+        public function build(Injector $injector): Provider
         {
             return (new LazyLoadingValueHolderFactory)->createProxy(
-                $this->provider->getType(),
-                function (&$object, $proxy, $method, $parameters, &$initializer) use ($context) {
-                    $object = $this->provider->get($context);
+                $this->definition->getType(),
+                function (&$object, $proxy, $method, $parameters, &$initializer) {
+                    $object = $this->definition->get();
                     $initializer = null;
                 }
             );
         }
-
-        public function getType(): ?string
-        {
-            return $this->provider->getType();
-        }
-
-        public function getDependencies(Context $context): array
-        {
-            return [$this->provider];
-        }
     };
 }
 
-$contextBuilder = new ContextBuilder;
-$contextBuilder->add('car', proxy(autowire(Car::class)));
-$contextBuilder->add('engine', proxy(autowire(V8::class, arguments()->name('arg', value('some text')))));
+$definitions = (new Definitions)
+    ->with(proxy(object(Car::class)), 'car')
+    ->with(proxy(object(V8::class, arguments()->with(names()->with('arg', value('some text'))))), 'engine');
 
 // TODO: Replacement for prepare?
 // $contextBuilder->prepare(V8::class, function (V8 $v8, Amp\Injector\Injector $injector) {
@@ -97,7 +101,9 @@ $contextBuilder->add('engine', proxy(autowire(V8::class, arguments()->name('arg'
 
 print 'Configuration complete.' . PHP_EOL;
 
-$car = $contextBuilder->build()->getType(Car::class);
+$application = new Application(new Injector($definitions, any()));
+
+$car = $application->getContainer()->get('car');
 
 print '$car is an instance of Car: ';
 \var_dump($car instanceof Car);

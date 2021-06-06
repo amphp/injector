@@ -2,6 +2,7 @@
 
 namespace Amp\Injector\Internal;
 
+/** @internal */
 function normalizeClass(string $class): string
 {
     // See https://www.php.net/manual/en/language.oop5.basic.php
@@ -12,6 +13,7 @@ function normalizeClass(string $class): string
     return \strtolower(\ltrim($class, '\\'));
 }
 
+/** @internal */
 function getDefaultReflector(): Reflector
 {
     static $reflector = null;

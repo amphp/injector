@@ -2,42 +2,43 @@
 
 namespace Amp\Injector;
 
+use Amp\Injector\Meta\Parameter;
 use PHPUnit\Framework\TestCase;
 
-class LoggingProvider implements Provider, ProviderLifecycle
+class LoggingProvider implements Provider, Lifecycle
 {
     public function __construct(private string $id, private array $dependencies)
     {
     }
 
-    public function get(Context $context): mixed
+    public function has(Container $context, Parameter $parameter): bool
+    {
+        return true;
+    }
+
+    public function unwrap(): ?Provider
+    {
+        return null;
+    }
+
+    public function getDependencies(): array
+    {
+        return \array_map(fn ($id) => $context->getProvider($id), $this->dependencies);
+    }
+
+    public function start(): void
+    {
+        $this->get(new ProviderContext);
+    }
+
+    public function get(ProviderContext $context): mixed
     {
         print $this->id . ' ';
 
         return null;
     }
 
-    public function getType(): ?string
-    {
-        return null;
-    }
-
-    public function getDependencies(Context $context): array
-    {
-        return array_map(fn($id) => $context->getProvider($id), $this->dependencies);
-    }
-
-    public function instantiate(Context $context): void
-    {
-        print '0:' . $this->id . ' ';
-    }
-
-    public function start(Context $context): void
-    {
-        print '1:' . $this->id . ' ';
-    }
-
-    public function stop(Context $context): void
+    public function stop(): void
     {
         print '2:' . $this->id . ' ';
     }
@@ -45,7 +46,7 @@ class LoggingProvider implements Provider, ProviderLifecycle
 
 class LifecycleTest extends TestCase
 {
-    private ContextBuilder $contextBuilder;
+    private Definitions $contextBuilder;
 
     public function testSimple()
     {
@@ -55,7 +56,7 @@ class LifecycleTest extends TestCase
             'c' => [],
         ]);
 
-        $this->expectOutputString('0:c 0:b 0:a 1:c 1:b 1:a ready 2:a 2:b 2:c ');
+        $this->expectOutputString('c b a 1:c 1:b 1:a ready 2:a 2:b 2:c ');
 
         $this->executeLifecycle();
     }
@@ -63,14 +64,13 @@ class LifecycleTest extends TestCase
     private function givenDependencies(array $dependencies)
     {
         foreach ($dependencies as $id => $dependency) {
-            $this->contextBuilder->add($id, new LoggingProvider($id, $dependency));
+            $this->contextBuilder->add(new LoggingProvider($id, $dependency), $id);
         }
     }
 
     private function executeLifecycle()
     {
         $context = $this->contextBuilder->build();
-        $context->instantiate();
         $context->start();
         print 'ready ';
         $context->stop();
@@ -78,11 +78,11 @@ class LifecycleTest extends TestCase
 
     public function testCircular()
     {
-        $this->contextBuilder->add('a', singleton(new LoggingProvider('a', ['b'])));
-        $this->contextBuilder->add('b', singleton(new LoggingProvider('b', []))->onStart(function ($b, $context) {
+        $this->contextBuilder->add(singleton(new LoggingProvider('a', ['b'])), 'a');
+        $this->contextBuilder->add(singleton(new LoggingProvider('b', []))->onStart(function ($b, $context) {
             print 'b+ ';
             $context->get('a');
-        }));
+        }), 'b');
 
         $this->expectOutputString('0:b b 0:a a 1:b b+ 1:a ready 2:a 2:b ');
 
@@ -105,6 +105,6 @@ class LifecycleTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->contextBuilder = new ContextBuilder;
+        $this->contextBuilder = new Definitions;
     }
 }

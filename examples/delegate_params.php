@@ -1,9 +1,13 @@
 <?php
 
-use Amp\Injector\ContextBuilder;
-use Amp\Injector\Provider\DynamicProvider;
+use Amp\Injector\Application;
+use Amp\Injector\Definitions;
+use Amp\Injector\Injector;
+use function Amp\Injector\any;
 use function Amp\Injector\arguments;
-use function Amp\Injector\autowire;
+use function Amp\Injector\factory;
+use function Amp\Injector\names;
+use function Amp\Injector\object;
 
 require __DIR__ . "/../vendor/autoload.php";
 
@@ -29,21 +33,23 @@ class A
     }
 }
 
-$contextFactory = new ContextBuilder;
-$contextFactory->add('a', autowire(A::class, arguments()->name('a', new DynamicProvider(function () {
-    $std = new stdClass;
-    $std->foo = "foo";
-    return $std;
-}))->name('b', new DynamicProvider(function () {
-    $std = new stdClass;
-    $std->foo = "bar";
-    return $std;
-}))));
+$definitions = (new Definitions)
+    ->with(object(
+        A::class,
+        arguments()->with(
+        names()->with('a', factory(function () {
+            $std = new stdClass;
+            $std->foo = "foo";
+            return $std;
+        }))->with('b', factory(function () {
+            $std = new stdClass;
+            $std->foo = "bar";
+            return $std;
+        }))
+    )
+    ), 'a');
 
-$context = $contextFactory->build();
+$application = new Application(new Injector($definitions, any()));
 
-$a = $context->get('a');
-$a->print();
-
-$a = $context->getType(A::class);
+$a = $application->getContainer()->get('a');
 $a->print();
