@@ -3,7 +3,6 @@
 namespace Amp\Injector;
 
 use Amp\Injector\Internal\ApplicationLifecycle;
-use Amp\Injector\Internal\LocalContainer;
 
 final class Application implements Lifecycle
 {
@@ -17,7 +16,12 @@ final class Application implements Lifecycle
     public function __construct(Injector $injector)
     {
         $this->injector = $injector;
-        $this->container = new LocalContainer($injector);
+        $this->container = new RootContainer;
+
+        foreach ($injector->getDefinitions() as $id => $definition) {
+            $this->container = $this->container->with($id, $definition->build($injector));
+        }
+
         $this->lifecycle = new ApplicationLifecycle($this->container);
     }
 

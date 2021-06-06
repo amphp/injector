@@ -1,32 +1,18 @@
 <?php
 
-namespace Amp\Injector\Internal;
+namespace Amp\Injector;
 
-use Amp\Injector\Container;
-use Amp\Injector\InjectionException;
-use Amp\Injector\Injector;
-use Amp\Injector\NotFoundException;
-use Amp\Injector\Provider;
-use Amp\Injector\ProviderContext;
-
-/** @internal */
-final class LocalContainer implements Container
+final class RootContainer implements Container
 {
     /** @var Provider[] */
     private array $providers = [];
 
-    private FiberLocalObjectSet $pending;
-
-    /**
-     * @throws InjectionException
-     */
-    public function __construct(Injector $injector)
+    public function with(string $id, Provider $provider): self
     {
-        $this->pending = new FiberLocalObjectSet;
+        $clone = clone $this;
+        $clone->providers[$id] = $provider;
 
-        foreach ($injector->getDefinitions() as $id => $definition) {
-            $this->providers[$id] = new LocalProvider($definition->build($injector), $this->pending);
-        }
+        return $clone;
     }
 
     public function get(string $id): mixed
