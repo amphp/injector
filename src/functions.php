@@ -13,12 +13,27 @@ use Amp\Injector\Weaver\AutomaticTypeWeaver;
 use Amp\Injector\Weaver\NameWeaver;
 use Amp\Injector\Weaver\TypeWeaver;
 
-function arguments(): Arguments
+function definitions(): Definitions
+{
+    static $definitions = null;
+
+    if (!$definitions) {
+        $definitions = new Definitions;
+    }
+
+    return $definitions;
+}
+
+function arguments(Weaver ...$weavers): Arguments
 {
     static $arguments = null;
 
     if (!$arguments) {
         $arguments = new Arguments;
+    }
+
+    foreach ($weavers as $weaver) {
+        $arguments = $arguments->with($weaver);
     }
 
     return $arguments;
@@ -56,9 +71,15 @@ function automaticTypes(Definitions $definitions): AutomaticTypeWeaver
     return new AutomaticTypeWeaver($definitions);
 }
 
-function names(): NameWeaver
+function names(array $definitions = []): NameWeaver
 {
-    return new NameWeaver;
+    $names = new NameWeaver;
+
+    foreach ($definitions as $name => $definition) {
+        $names = $names->with($name, $definition);
+    }
+
+    return $names;
 }
 
 function types(): TypeWeaver

@@ -1,17 +1,17 @@
 <?php
 
 use Amp\Injector\Application;
-use Amp\Injector\Definitions;
 use Amp\Injector\Injector;
 use function Amp\Injector\any;
 use function Amp\Injector\arguments;
+use function Amp\Injector\definitions;
 use function Amp\Injector\factory;
 use function Amp\Injector\names;
 use function Amp\Injector\object;
 
 require __DIR__ . "/../vendor/autoload.php";
 
-class A
+class Foobar
 {
     private $a;
     private $b;
@@ -33,21 +33,19 @@ class A
     }
 }
 
-$definitions = (new Definitions)
-    ->with(object(
-        A::class,
-        arguments()->with(
-        names()->with('a', factory(function () {
+$definitions = definitions()
+    ->with(object(Foobar::class, arguments(names([
+        'a' => factory(function () {
             $std = new stdClass;
             $std->foo = "foo";
             return $std;
-        }))->with('b', factory(function () {
+        }),
+        'b' => factory(function () {
             $std = new stdClass;
             $std->foo = "bar";
             return $std;
-        }))
-    )
-    ), 'a');
+        }),
+    ]))), 'a');
 
 $application = new Application(new Injector($definitions, any()));
 

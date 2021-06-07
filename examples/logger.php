@@ -1,7 +1,6 @@
 <?php
 
 use Amp\Injector\Application;
-use Amp\Injector\Definitions;
 use Amp\Injector\Injector;
 use Amp\Injector\ProviderContext;
 use Monolog\Formatter\LineFormatter;
@@ -10,6 +9,7 @@ use Monolog\Logger;
 use Monolog\Processor\PsrLogMessageProcessor;
 use Psr\Log\LoggerInterface as PsrLogger;
 use function Amp\Injector\automaticTypes;
+use function Amp\Injector\definitions;
 use function Amp\Injector\factory;
 use function Amp\Injector\object;
 
@@ -19,7 +19,7 @@ class Foo
 {
     public function __construct(PsrLogger $logger)
     {
-        $logger->info('Constructed.');
+        $logger->info('Constructed');
     }
 }
 
@@ -27,27 +27,38 @@ class Bar
 {
     public function __construct(PsrLogger $logger)
     {
-        $logger->info('Constructed.');
+        $logger->info('Constructed');
     }
 }
 
 $logHandler = new StreamHandler(STDOUT);
 $logHandler->pushProcessor(new PsrLogMessageProcessor);
-$logHandler->setFormatter(new LineFormatter(null, null, true, true));
+$logHandler->setFormatter(new LineFormatter);
 
 $logger = new Logger('main');
 $logger->pushHandler($logHandler);
 
-$definitions = (new Definitions)
+$definitions = definitions()
     ->with(object(Foo::class))
     ->with(factory(function (ProviderContext $context) use ($logger): PsrLogger {
-        $logger->info('Creating logger for ' . $context->getParameter(1));
+        // Note the return type to automatically provide that type -- ^^^^^^^^^
 
-        return $logger->withName($context->getParameter(1)?->getDeclaringClass() ?? 'unknown');
+        if ($parameter = $context->getParameter(1)) {
+            $logger->info('Creating logger for ' . $parameter);
+
+            return $logger->withName($parameter->getDeclaringClass() ?? 'unknown');
+        } else {
+            $logger->info('Using default logger');
+
+            return $logger;
+        }
     }), 'logger');
 
 $application = new Application(new Injector($definitions, automaticTypes($definitions)));
-$application->getContainer()->get('logger')->info('Configuration complete.');
+$application->getContainer()->get('logger')->info('Configuration complete');
 
-$foo = $application->invoke(factory(fn (Foo $foo) => $foo));
+// Using invoke and a factory callable let's you specify type, name, etc.
+$foo = $application->invoke(factory(fn(Foo $foo) => $foo));
+
+// We can also provide objects not defined in the initial set of definitions
 $bar = $application->invoke(object(Bar::class));

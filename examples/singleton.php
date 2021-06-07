@@ -12,9 +12,9 @@ use function Amp\Injector\value;
 
 require __DIR__ . "/../vendor/autoload.php";
 
-class A
+class Singleton
 {
-    public $std;
+    public stdClass $std;
 
     public function __construct(stdClass $std)
     {
@@ -26,16 +26,17 @@ $stdClass = new stdClass;
 $stdClass->foo = "foobar";
 
 $definitions = (new Definitions)
-    ->with(singleton(object(A::class, arguments()->with(names()->with('std', value($stdClass))))), 'a');
+    ->with(singleton(object(Singleton::class, arguments(names(['std' => value($stdClass)])))), 'hello_world');
 
 $application = new Application(new Injector($definitions, any()));
 
-$a = $application->getContainer()->get('a');
+$a = $application->getContainer()->get('hello_world');
 
 print $a->std->foo . PHP_EOL;
 
 $a->std->foo = 'baz';
 
-$a = $application->getContainer()->get('a');
+// Note: Returns the same object
+$a = $application->getContainer()->get('hello_world');
 
 print $a->std->foo . PHP_EOL;

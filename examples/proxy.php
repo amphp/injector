@@ -96,7 +96,7 @@ function proxy(string $class, Definition $definition): Definition
 
 $definitions = (new Definitions)
     ->with(proxy(Car::class, object(Car::class)), 'car')
-    ->with(proxy(V8::class, object(V8::class, arguments()->with(names()->with('arg', value('some text'))))), 'engine');
+    ->with(proxy(V8::class, object(V8::class, arguments(names(['arg', value('some text')])))), 'engine');
 
 // TODO: Replacement for prepare?
 // $contextBuilder->prepare(V8::class, function (V8 $v8, Amp\Injector\Injector $injector) {
