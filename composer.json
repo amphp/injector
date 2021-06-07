@@ -50,7 +50,8 @@
     "require": {
         "php": ">=8.0",
         "kelunik/fiber-local": "^1-dev",
-        "psr/container": "^1.1"
+        "psr/container": "^1.1",
+        "phpbench/phpbench": "^1.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5.2",

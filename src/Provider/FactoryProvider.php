@@ -19,7 +19,7 @@ final class FactoryProvider implements Provider
         $this->arguments = $arguments;
     }
 
-    public function get(ProviderContext $context): object
+    public function get(ProviderContext $context): mixed
     {
         try {
             $args = [];
