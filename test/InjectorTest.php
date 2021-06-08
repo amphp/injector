@@ -18,7 +18,7 @@ class InjectorTest extends TestCase
     {
         $definitions ??= new Definitions;
 
-        return $definition->build(new Injector($definitions, automaticTypes($definitions)))->get(new ProviderContext);
+        return $definition->build(new Injector(automaticTypes($definitions)))->get(new ProviderContext);
     }
 
     public function testReturnsNewInstanceIfClassHasNoConstructor(): void
@@ -68,7 +68,7 @@ class InjectorTest extends TestCase
     {
         $definitions = (new Definitions)->with(object(DepImplementation::class))->with(singleton(object(RequiresInterface::class)));
 
-        $application = new Application(new Injector($definitions, automaticTypes($definitions)));
+        $application = new Application(new Injector(automaticTypes($definitions)), $definitions);
 
         $object1 = factory(fn (RequiresInterface $instance) => $instance)->build($application->getInjector())->get(new ProviderContext);
 

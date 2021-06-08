@@ -54,16 +54,16 @@ class LifecycleTest extends TestCase
             ->with(new ProviderDefinition($b))
             ->with(new ProviderDefinition($c));
 
-        $injector = new Injector($definitions, any());
+        $injector = new Injector(any());
 
         $this->expectOutputString('start:c c start:b b start:a a ready stop:a stop:b stop:c ');
 
-        $this->executeLifecycle($injector);
+        $this->executeLifecycle($injector, $definitions);
     }
 
-    private function executeLifecycle(Injector $injector)
+    private function executeLifecycle(Injector $injector, Definitions $definitions)
     {
-        $application = new Application($injector);
+        $application = new Application($injector, $definitions);
         $application->start();
         print 'ready ';
         $application->stop();
@@ -82,10 +82,10 @@ class LifecycleTest extends TestCase
             ->with(new ProviderDefinition($c))
             ->with(new ProviderDefinition($d));
 
-        $injector = new Injector($definitions, any());
+        $injector = new Injector(any());
 
         $this->expectOutputString('start:c c start:b b start:a a start:d d ready stop:d stop:a stop:b stop:c ');
 
-        $this->executeLifecycle($injector);
+        $this->executeLifecycle($injector, $definitions);
     }
 }

@@ -8,18 +8,11 @@ use Amp\Injector\Meta\Parameter;
 
 final class Injector implements Weaver
 {
-    private Definitions $definitions;
     private Weaver $weaver;
 
-    public function __construct(Definitions $definitions, Weaver $weaver)
+    public function __construct(Weaver $weaver)
     {
-        $this->definitions = $definitions;
         $this->weaver = $weaver;
-    }
-
-    public function getDefinitions(): Definitions
-    {
-        return $this->definitions;
     }
 
     /**

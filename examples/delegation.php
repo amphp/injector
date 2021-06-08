@@ -47,7 +47,7 @@ $definitions = definitions()
         }),
     ]))), 'a');
 
-$application = new Application(new Injector($definitions, any()));
+$application = new Application(new Injector(any()), $definitions);
 
 $a = $application->getContainer()->get('a');
 $a->print();

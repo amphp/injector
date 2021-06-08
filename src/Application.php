@@ -13,12 +13,12 @@ final class Application implements Lifecycle
     /**
      * @throws InjectionException
      */
-    public function __construct(Injector $injector)
+    public function __construct(Injector $injector, Definitions $definitions)
     {
         $this->injector = $injector;
         $this->container = new RootContainer;
 
-        foreach ($injector->getDefinitions() as $id => $definition) {
+        foreach ($definitions as $id => $definition) {
             $this->container = $this->container->with($id, $definition->build($injector));
         }
 

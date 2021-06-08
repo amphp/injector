@@ -105,7 +105,7 @@ $definitions = (new Definitions)
 
 print 'Configuration complete.' . PHP_EOL;
 
-$application = new Application(new Injector($definitions, automaticTypes($definitions)));
+$application = new Application(new Injector(automaticTypes($definitions)), $definitions);
 
 $car = $application->getContainer()->get('car');
 

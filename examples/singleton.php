@@ -28,7 +28,7 @@ $stdClass->foo = "foobar";
 $definitions = (new Definitions)
     ->with(singleton(object(Singleton::class, arguments(names(['std' => value($stdClass)])))), 'hello_world');
 
-$application = new Application(new Injector($definitions, any()));
+$application = new Application(new Injector(any()), $definitions);
 
 $a = $application->getContainer()->get('hello_world');
 

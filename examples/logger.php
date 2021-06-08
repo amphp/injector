@@ -47,18 +47,18 @@ $definitions = definitions()
             $logger->info('Creating logger for ' . $parameter);
 
             return $logger->withName($parameter->getDeclaringClass() ?? 'unknown');
-        } else {
-            $logger->info('Using default logger');
-
-            return $logger;
         }
+
+        $logger->info('Using default logger');
+
+        return $logger;
     }), 'logger');
 
-$application = new Application(new Injector($definitions, automaticTypes($definitions)));
+$application = new Application(new Injector(automaticTypes($definitions)), $definitions);
 $application->getContainer()->get('logger')->info('Configuration complete');
 
 // Using invoke and a factory callable let's you specify type, name, etc.
-$foo = $application->invoke(factory(fn(Foo $foo) => $foo));
+$foo = $application->invoke(factory(fn (Foo $foo) => $foo));
 
 // We can also provide objects not defined in the initial set of definitions
 $bar = $application->invoke(object(Bar::class));

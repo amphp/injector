@@ -22,7 +22,7 @@ use function Amp\Injector\value;
 
 #[BeforeMethods('init')]
 #[Iterations(3)]
-#[Revs(500000)]
+#[Revs(10000)]
 #[Warmup(1)]
 #[OutputTimeUnit('milliseconds', precision: 5)]
 class ExecuteBenchmark
@@ -37,8 +37,8 @@ class ExecuteBenchmark
     public function init(): void
     {
         $definitions = definitions()->with(object(\stdClass::class));
-        $this->injector = new Injector($definitions, automaticTypes($definitions));
-        $this->application = new Application($this->injector);
+        $this->injector = new Injector(automaticTypes($definitions));
+        $this->application = new Application($this->injector, $definitions);
 
         $this->noop = new Noop;
         $this->closureCached = factory(function () {
@@ -79,6 +79,11 @@ class ExecuteBenchmark
     }
 
     public function benchInvokeWithNamedParameters(): void
+    {
+        $this->application->invoke(factory(\Closure::fromCallable([$this->noop, 'namedNoop']), arguments(names(['name' => value('foo')]))));
+    }
+
+    public function benchInvokeWithNamedParametersCached(): void
     {
         $this->namedParamsCached->get(new ProviderContext);
     }

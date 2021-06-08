@@ -13,7 +13,7 @@ class ProxyTest extends TestCase
     {
         $definitions = (new Definitions)->with(self::proxy(TestDependency::class, object(TestDependency::class)));
 
-        $object = factory(fn (TestDependency $instance) => $instance)->build(new Injector($definitions, automaticTypes($definitions)))->get(new ProviderContext);
+        $object = factory(fn (TestDependency $instance) => $instance)->build(new Injector(automaticTypes($definitions)))->get(new ProviderContext);
 
         self::assertInstanceOf(TestDependency::class, $object);
         self::assertInstanceOf(LazyLoadingInterface::class, $object);
@@ -58,7 +58,7 @@ class ProxyTest extends TestCase
             ->with(self::proxy(TestDependency::class, object(TestDependency::class)))
             ->with(object(TestNeedsDep::class));
 
-        $needDep = factory(fn (TestNeedsDep $instance) => $instance)->build(new Injector($definitions, automaticTypes($definitions)))->get(new ProviderContext);
+        $needDep = factory(fn (TestNeedsDep $instance) => $instance)->build(new Injector(automaticTypes($definitions)))->get(new ProviderContext);
 
         self::assertInstanceOf(TestNeedsDep::class, $needDep);
     }
@@ -68,7 +68,7 @@ class ProxyTest extends TestCase
         $definitions = (new Definitions)
             ->with(singleton(self::proxy(TestDependency::class, object(TestDependency::class))));
 
-        $injector = new Injector($definitions, automaticTypes($definitions));
+        $injector = new Injector(automaticTypes($definitions));
 
         $object1 = factory(fn (TestDependency $instance) => $instance)->build($injector)->get(new ProviderContext);
         $object2 = factory(fn (TestDependency $instance) => $instance)->build($injector)->get(new ProviderContext);
@@ -82,7 +82,7 @@ class ProxyTest extends TestCase
             ->with(self::proxy(NoTypehintNoDefaultConstructorClass::class, object(NoTypehintNoDefaultConstructorClass::class, arguments()->with(names()->with('arg', value(42))))))
             ->with(object(TestDependency::class));
 
-        $injector = new Injector($definitions, automaticTypes($definitions));
+        $injector = new Injector(automaticTypes($definitions));
 
         $object = factory(fn (NoTypehintNoDefaultConstructorClass $instance) => $instance)->build($injector)->get(new ProviderContext);
 
