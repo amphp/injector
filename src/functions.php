@@ -26,7 +26,13 @@ function definitions(): Definitions
 
 function arguments(Weaver ...$weavers): Arguments
 {
-    $arguments = new Arguments;
+    static $empty = null;
+
+    if (!$empty) {
+        $empty = new Arguments;
+    }
+
+    $arguments = $empty;
 
     foreach ($weavers as $weaver) {
         $arguments = $arguments->with($weaver);
