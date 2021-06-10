@@ -26,11 +26,7 @@ function definitions(): Definitions
 
 function arguments(Weaver ...$weavers): Arguments
 {
-    static $arguments = null;
-
-    if (!$arguments) {
-        $arguments = new Arguments;
-    }
+    $arguments = new Arguments;
 
     foreach ($weavers as $weaver) {
         $arguments = $arguments->with($weaver);
