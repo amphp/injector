@@ -3,17 +3,12 @@
 namespace Amp\Injector\Internal;
 
 use Amp\Injector\Arguments;
-use Amp\Injector\Definition\ProviderDefinition;
 use Amp\Injector\InjectionException;
 use Amp\Injector\Injector;
 use Amp\Injector\Meta\Argument;
 use Amp\Injector\Meta\Executable;
-use Amp\Injector\Meta\Parameter;
 use Amp\Injector\Provider;
-use Amp\Injector\Provider\ContextProvider;
 use Amp\Injector\Provider\FactoryProvider;
-use Amp\Injector\ProviderContext;
-use function Amp\Injector\types;
 use function Amp\Injector\value;
 
 /** @internal */
@@ -42,24 +37,17 @@ final class ExecutableWeaver
         $variadic = null;
         $args = [];
 
-        // TODO Fine here?
-        $arguments = $arguments->with(types()->with(ProviderContext::class, new ProviderDefinition(new ContextProvider)));
-
         for ($index = 0; $index < $count; $index++) {
             $parameter = $parameters[$index];
 
             $definition = $arguments->getDefinition($parameter);
+            $definition ??= $parameter->isOptional() ? value($parameter->getDefaultValue()) : null;
 
-            if ($parameter->isOptional()) {
-                $definition ??= value($parameter->getDefaultValue());
-            }
-
-            if ($parameter->getType() && \in_array(Parameter::class, $parameter->getType()->getTypes(), true)) {
-                $definition ??= value($parameter);
-            }
-
-            if ($parameter->getType() && $parameter->getType()->isNullable()) {
-                $definition ??= value(null);
+            if ($definition === null) {
+                $type = $parameter->getType();
+                if ($type && $type->isNullable()) {
+                    $definition = value(null);
+                }
             }
 
             $definition ??= throw new InjectionException('Could not find a suitable definition for ' . $parameter);

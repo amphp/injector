@@ -1,17 +1,21 @@
 <?php
 
 use Amp\Injector\Application;
+use Amp\Injector\Definition\ProviderDefinition;
 use Amp\Injector\Injector;
+use Amp\Injector\Provider\ContextProvider;
 use Amp\Injector\ProviderContext;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use Monolog\Processor\PsrLogMessageProcessor;
 use Psr\Log\LoggerInterface as PsrLogger;
+use function Amp\Injector\any;
 use function Amp\Injector\automaticTypes;
 use function Amp\Injector\definitions;
 use function Amp\Injector\factory;
 use function Amp\Injector\object;
+use function Amp\Injector\types;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -54,7 +58,11 @@ $definitions = definitions()
         return $logger;
     }), 'logger');
 
-$application = new Application(new Injector(automaticTypes($definitions)), $definitions);
+$application = new Application(new Injector(any(
+    types()->with(ProviderContext::class, new ProviderDefinition(new ContextProvider)),
+    automaticTypes($definitions),
+)), $definitions);
+
 $application->getContainer()->get('logger')->info('Configuration complete');
 
 // Using invoke and a factory callable let's you specify type, name, etc.

@@ -17,6 +17,6 @@ $definitions = definitions()->with(object(\stdClass::class));
 $injector = new Injector(automaticTypes($definitions));
 $application = new Application($injector, $definitions);
 
-for ($i = 0; $i < 10000; $i++) {
+for ($i = 0; $i < 100000; $i++) {
     $application->invoke(factory(\Closure::fromCallable([new Noop, 'namedNoop']), arguments(names(['name' => value('foo')]))));
 }
