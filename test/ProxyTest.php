@@ -6,6 +6,8 @@ use Amp\Injector\Meta\Type;
 use PHPUnit\Framework\TestCase;
 use ProxyManager\Factory\LazyLoadingValueHolderFactory;
 use ProxyManager\Proxy\LazyLoadingInterface;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
 
 class ProxyTest extends TestCase
 {
@@ -40,14 +42,41 @@ class ProxyTest extends TestCase
             public function build(Injector $injector): Provider
             {
                 $factory = new LazyLoadingValueHolderFactory;
+                $provider = $this->definition->build($injector);
 
-                return factory(fn (ProviderContext $context) => $factory->createProxy(
-                    $this->class,
-                    function (&$object, $proxy, $method, $parameters, &$initializer) use ($injector, $context) {
-                        $object = $this->definition->build($injector)->get($context);
-                        $initializer = null;
+                return new class($factory, $provider, $this->class) implements Provider {
+                    private LazyLoadingValueHolderFactory $factory;
+                    private Provider $provider;
+                    private string $class;
+
+                    public function __construct(LazyLoadingValueHolderFactory $factory, Provider $provider, string $class)
+                    {
+                        $this->factory = $factory;
+                        $this->provider = $provider;
+                        $this->class = $class;
                     }
-                ))->build($injector);
+
+                    public function get(ProviderContext $context): mixed
+                    {
+                        return $this->factory->createProxy(
+                            $this->class,
+                            function (&$object, $proxy, $method, $parameters, &$initializer) use ($context) {
+                                $object = $this->provider->get($context);
+                                $initializer = null;
+                            }
+                        );
+                    }
+
+                    public function unwrap(): ?Provider
+                    {
+                        return $this->provider;
+                    }
+
+                    public function getDependencies(): array
+                    {
+                        return [];
+                    }
+                };
             }
         };
     }
@@ -65,8 +94,7 @@ class ProxyTest extends TestCase
 
     public function testSingletonInstanceProxy(): void
     {
-        $definitions = (new Definitions)
-            ->with(singleton(self::proxy(TestDependency::class, object(TestDependency::class))));
+        $definitions = definitions()->with(singleton(self::proxy(TestDependency::class, object(TestDependency::class))));
 
         $injector = new Injector(automaticTypes($definitions));
 
