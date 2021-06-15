@@ -4,9 +4,8 @@ namespace Amp\Injector;
 
 use Amp\Injector\Internal\ExecutableWeaver;
 use Amp\Injector\Meta\Executable;
-use Amp\Injector\Meta\Parameter;
 
-final class Injector implements Weaver
+final class Injector
 {
     private Weaver $weaver;
 
@@ -21,11 +20,6 @@ final class Injector implements Weaver
     public function getExecutableProvider(Executable $executable, Arguments $arguments): Provider
     {
         // TODO: Make customizable?
-        return ExecutableWeaver::build($executable, $arguments->with($this), $this);
-    }
-
-    public function getDefinition(Parameter $parameter): ?Definition
-    {
-        return $this->weaver->getDefinition($parameter);
+        return ExecutableWeaver::build($executable, $arguments->with($this->weaver), $this);
     }
 }
