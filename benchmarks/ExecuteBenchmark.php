@@ -22,7 +22,7 @@ use function Amp\Injector\value;
 
 #[BeforeMethods('init')]
 #[Iterations(3)]
-#[Revs(10000)]
+#[Revs(100000)]
 #[Warmup(1)]
 #[OutputTimeUnit('milliseconds', precision: 5)]
 class ExecuteBenchmark
@@ -57,8 +57,8 @@ class ExecuteBenchmark
 
     public function benchNativeInvokeMethod(): void
     {
-        $method = 'noop';
-        $this->noop->$method();
+        $method = 'namedNoop';
+        $this->noop->$method(name: 'foo');
     }
 
     public function benchInvokeClosure(): void
@@ -81,6 +81,11 @@ class ExecuteBenchmark
     public function benchInvokeWithNamedParameters(): void
     {
         $this->application->invoke(factory(\Closure::fromCallable([$this->noop, 'namedNoop']), arguments(names(['name' => value('foo')]))));
+    }
+
+    public function benchInvokeWithNamedParametersTwo(): void
+    {
+        $this->application->invoke(factory(\Closure::fromCallable([$this->noop, 'namedNoop2']), arguments(names(['foo' => value('foo'), 'bar' => value('bar')]))));
     }
 
     public function benchInvokeWithNamedParametersCached(): void

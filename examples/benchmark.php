@@ -17,6 +17,13 @@ $definitions = definitions()->with(object(\stdClass::class));
 $injector = new Injector(automaticTypes($definitions));
 $application = new Application($injector, $definitions);
 
-for ($i = 0; $i < 100000; $i++) {
+$iterations = 100000;
+$start = \hrtime(true);
+
+for ($i = 0; $i < $iterations; $i++) {
     $application->invoke(factory(\Closure::fromCallable([new Noop, 'namedNoop']), arguments(names(['name' => value('foo')]))));
 }
+
+$end = \hrtime(true);
+
+print \round(($end - $start) / 1_000 / $iterations, 3) . 'µs' . PHP_EOL;
