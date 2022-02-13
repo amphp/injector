@@ -17,7 +17,7 @@ interface Container extends ContainerInterface, \IteratorAggregate
     public function has(string $id): bool;
 
     /** @return iterable<Provider> */
-    public function getIterator(): iterable;
+    public function getIterator(): \Traversable;
 
     public function getProvider(string $id): Provider;
 }
