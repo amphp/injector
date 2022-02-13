@@ -33,7 +33,7 @@ final class RootContainer implements Container
         return isset($this->providers[$id]);
     }
 
-    public function getIterator(): iterable
+    public function getIterator(): \Generator
     {
         foreach ($this->providers as $id => $provider) {
             yield (string) $id => $provider;

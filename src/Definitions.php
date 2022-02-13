@@ -32,7 +32,7 @@ final class Definitions implements \IteratorAggregate
     /**
      * @return iterable<Definition>
      */
-    public function getIterator(): iterable
+    public function getIterator(): \Generator
     {
         foreach ($this->definitions as $id => $definition) {
             yield $id => $definition;
